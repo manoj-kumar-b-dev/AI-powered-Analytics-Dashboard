@@ -1,0 +1,34 @@
+{
+  "name": "saas-analytics-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.2",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^0.368.0",
+    "papaparse": "^5.5.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-dropzone": "^15.0.0",
+    "react-grid-layout": "^1.4.4",
+    "recharts": "^2.12.5",
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.16",
+    "tailwindcss": "^4.3.2",
+    "vite": "^5.2.0"
+  }
+}
