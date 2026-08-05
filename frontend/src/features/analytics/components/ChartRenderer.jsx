@@ -31,13 +31,51 @@ const CHART_COLORS = [
   '#84CC16', // Lime
 ];
 
+const parseAndValidateDate = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    if (y < 2000 || y > 2100) {
+      const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port);
+      if (isDev) {
+        throw new Error(`Date validation failed: Year ${y} is outside sane range (2000-2100).`);
+      }
+    }
+    return val;
+  }
+  const str = val.toString().trim();
+  // Sane date check patterns: requires basic separators (-, /, .) with numbers or month names
+  const hasDateStructure = /^\d{4}-\d{2}-\d{2}/.test(str) || /\d{1,4}[\/\-\.]\d{1,2}/.test(str) || /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i.test(str);
+  if (!hasDateStructure) return null;
+
+  const time = Date.parse(str);
+  if (isNaN(time)) return null;
+  const date = new Date(time);
+  const year = date.getUTCFullYear();
+  if (year < 2000 || year > 2100) {
+    const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port);
+    if (isDev) {
+      throw new Error(`Date validation failed: Year ${year} is outside sane range (2000-2100). Value parsed: "${val}"`);
+    }
+  }
+  return date;
+};
+
 // Redesigned premium custom tooltip with dynamic previous-index comparison and growth indicators
 const CustomTooltip = ({ active, payload, label, data }) => {
   if (active && payload && payload.length) {
+    const formattedLabel = (() => {
+      const date = parseAndValidateDate(label);
+      if (date) {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+      }
+      return label;
+    })();
+
     return (
       <div className="bg-[#050810]/95 border border-[#1F2937]/80 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md min-w-[160px] select-none text-left">
         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-[#1F2937]/50 pb-1.5 mb-2 font-display">
-          {label}
+          {formattedLabel}
         </p>
         <div className="space-y-1.5 font-sans">
           {payload.map((item, index) => (
@@ -62,9 +100,9 @@ export const ChartRenderer = ({ chartType, data, rawRows, xField, yField, groupB
   
   // Format X Axis Values
   const formatXAxis = (tickItem) => {
-    if (tickItem && !isNaN(Date.parse(tickItem)) && typeof tickItem === 'string' && tickItem.includes('-')) {
-      const date = new Date(tickItem);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const date = parseAndValidateDate(tickItem);
+    if (date) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
     }
     return tickItem;
   };
@@ -87,7 +125,7 @@ export const ChartRenderer = ({ chartType, data, rawRows, xField, yField, groupB
     
     const sign = num < 0 ? "-" : "";
     const isCurrency = yField && /revenue|sales_amount|amount|income|expenses|profit|cost/i.test(yField);
-    return isCurrency ? `${sign}$${formatted}` : `${sign}${formatted}`;
+    return isCurrency ? `${sign}₹${formatted}` : `${sign}${formatted}`;
   };
 
   // Calculate histogram bins dynamically if histogram selected

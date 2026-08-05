@@ -17,7 +17,10 @@ export function DatasetSidebar({
           Datasets Portal
         </h3>
         <button
-          onClick={resetUploadWizard}
+          onClick={() => {
+            resetUploadWizard();
+            selectDataSourceForPreview(null);
+          }}
           className="p-1.5 rounded-lg bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/30 border border-[#8B5CF6]/35 text-[#c084fc] transition-all cursor-pointer flex items-center justify-center"
           title="Import New Dataset"
         >

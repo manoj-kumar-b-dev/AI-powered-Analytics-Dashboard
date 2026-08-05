@@ -5,12 +5,12 @@ import { DashboardCanvas } from "../components/DashboardCanvas";
 import { useDataSources } from "../../upload/hooks/useDataSources";
 import { DatasetUploadManager } from "../../upload/components/DatasetUploadManager";
 import { AIInsightsPanel } from "../components/AIInsightsPanel";
+import InsightGenerator from "../../insights/components/InsightGenerator";
 import { AutoVisualizationContainer } from "../../analytics/components/AutoVisualizationContainer";
 import { useDashboardStore } from "../store/dashboardStore";
 import { useDashboard } from "../hooks/useDashboard";
 import { useFilters } from "../hooks/useFilters";
 import { ReportsTab } from "../components/ReportsTab";
-import { DashboardFilters } from "../components/DashboardFilters";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, ArrowRight } from "lucide-react";
 
@@ -51,17 +51,19 @@ export default function Dashboard() {
   const hasDatasets = dataSources.dataSources.length > 0;
 
   // Sync active dataset selection when none is loaded
+  const { fetchDashboard, activeDSId } = useDashboardStore();
   React.useEffect(() => {
-    if (dataSources.dataSources.length > 0 && !dataSources.selectedDSId) {
-      dataSources.selectDataSourceForPreview(dataSources.dataSources[0]._id);
+    if (activeTab !== "Upload Data" && dataSources.dataSources.length > 0 && !dataSources.selectedDSId) {
+      const activeDS = dataSources.dataSources.find(ds => ds.isActive);
+      const defaultId = activeDS?._id || activeDSId || dataSources.dataSources[0]._id;
+      dataSources.selectDataSourceForPreview(defaultId);
     }
-  }, [dataSources.dataSources, dataSources.selectedDSId]);
+  }, [dataSources.dataSources, dataSources.selectedDSId, activeTab, activeDSId]);
 
   // Sync dashboard store active dataset
-  const { fetchDashboard } = useDashboardStore();
   React.useEffect(() => {
     if (dataSources.selectedDSId) {
-      fetchDashboard();
+      fetchDashboard(dataSources.selectedDSId);
     }
   }, [dataSources.selectedDSId, fetchDashboard]);
 
@@ -198,14 +200,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <DashboardFilters
-                    filters={filters}
-                    dashboard={currentDashboard}
-                    isAnyFilterActive={isAnyFilterActive}
-                    onFilterChange={handleFilterChange}
-                    onClearFilters={handleClearFilters}
-                  />
-
                   <div className="w-full">
                     {isLoadingFilters || isStoreLoading ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -288,8 +282,11 @@ export default function Dashboard() {
               )}
             </div>
           ) : activeTab === "AI Insights" ? (
-            <div className="max-w-4xl mx-auto space-y-6 w-full text-left font-semibold">
-              <AIInsightsPanel data={aiInsights} />
+            <div className="max-w-6xl mx-auto space-y-6 w-full text-left font-semibold">
+              <InsightGenerator 
+                config={currentDashboard?.config || currentDashboard || {}} 
+                data={currentDashboard?.data || currentDashboard?.sampleRows || []} 
+              />
             </div>
           ) : activeTab === "Reports" ? (
             <div className="w-full text-left">

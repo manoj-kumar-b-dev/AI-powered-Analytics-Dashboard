@@ -139,6 +139,7 @@ export function DatasetUploadManager({
 
   const handleUploadAndSave = () => {
     if (!activeFile) return;
+    if (uploadState === "uploading" || uploadState === "saving") return;
 
     setUploadState("uploading");
     setUploadProgress(0);
@@ -284,6 +285,7 @@ export function DatasetUploadManager({
             targetDatasetId={targetDatasetId}
             setTargetDatasetId={setTargetDatasetId}
             handleUploadAndSave={handleUploadAndSave}
+            uploadState={uploadState}
           />
         )}
 

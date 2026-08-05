@@ -35,7 +35,7 @@ export const useDashboardStore = create((set, get) => ({
     get().fetchDashboard();
   },
 
-  fetchDashboard: async () => {
+  fetchDashboard: async (datasetId) => {
     set({ isLoading: true, error: null });
     const { filters } = get();
     const token = localStorage.getItem('token');
@@ -47,6 +47,11 @@ export const useDashboardStore = create((set, get) => ({
         queryParams.append(key, val);
       }
     });
+
+    const dsId = datasetId || get().activeDSId;
+    if (dsId) {
+      queryParams.append('datasetId', dsId);
+    }
 
     try {
       const res = await fetch(`http://localhost:5000/dashboard?${queryParams.toString()}`, {

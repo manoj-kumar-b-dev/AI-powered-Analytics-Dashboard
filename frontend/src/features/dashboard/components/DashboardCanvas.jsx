@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Coins,
   DollarSign,
+  IndianRupee,
   Activity,
   BarChart2,
   ArrowUpRight,
@@ -38,12 +39,13 @@ const ResponsiveGridLayout = WidthProvider(GridLayout);
 // corresponding Lucide component. No hardcoded lookups.
 // -------------------------------------------------------
 const ICON_MAP = {
-  DollarSign, ShoppingCart, Users, Wallet, TrendingUp, TrendingDown,
+  DollarSign: IndianRupee, IndianRupee, ShoppingCart, Users, Wallet, TrendingUp, TrendingDown,
   Activity, Coins, BarChart2, Percent, Package, MessageSquare,
   Star, Clock, Heart, GraduationCap, CreditCard, CheckSquare, Truck, ArrowUpRight
 };
 
 function resolveIcon(iconName) {
+  if (iconName === 'DollarSign') return IndianRupee;
   return ICON_MAP[iconName] || Activity;
 }
 
@@ -154,7 +156,7 @@ export function DashboardCanvas({
                 ) : type === "kpi-card" ? (
                   <WidgetKpi
                     title={title}
-                    value={widget.resolvedData?.formattedValue || "—"}
+                    value={typeof widget.resolvedData?.formattedValue === 'string' ? widget.resolvedData.formattedValue.replace(/\$/g, '₹') : (widget.resolvedData?.formattedValue || "—")}
                     kpiType={config.kpiType || widget.kpiType}
                     kpiMeta={widget.resolvedData?.meta}
                     deltaPct={widget.resolvedData?.deltaPct}
@@ -190,11 +192,13 @@ function AnimatedNumber({ value }) {
   const [displayVal, setDisplayVal] = useState(0);
 
   useEffect(() => {
-    const stringVal = String(value);
+    const rawVal = typeof value === "string" ? value.replace(/\$/g, "₹") : value;
+    const stringVal = String(rawVal);
+    const isCurrency = stringVal.includes("₹") || (typeof value === "string" && value.includes("$"));
     const numericVal = parseFloat(stringVal.replace(/[^0-9.]/g, ""));
 
     if (isNaN(numericVal)) {
-      setDisplayVal(value);
+      setDisplayVal(rawVal);
       return;
     }
 
@@ -206,8 +210,12 @@ function AnimatedNumber({ value }) {
       const progress = Math.min(elapsedTime / duration, 1);
       const current = progress * numericVal;
 
-      if (stringVal.startsWith("$")) {
-        setDisplayVal(`$${Math.round(current).toLocaleString()}`);
+      if (isCurrency) {
+        const hasDecimals = stringVal.includes(".");
+        const formatted = hasDecimals
+          ? current.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : Math.round(current).toLocaleString('en-IN');
+        setDisplayVal(`₹${formatted}`);
       } else {
         setDisplayVal(Math.round(current).toLocaleString());
       }
@@ -215,7 +223,7 @@ function AnimatedNumber({ value }) {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        setDisplayVal(value);
+        setDisplayVal(rawVal);
       }
     };
 

@@ -67,8 +67,24 @@ const isDateString = (val) => {
   const str = val.toString().trim();
   // Exclude simple short numbers (like '123' or '2025' which Date.parse can parse but are numbers)
   if (/^\d{1,4}$/.test(str)) return false;
+
+  // acceptable patterns:
+  // A. Number separated by slash/dash/dot (e.g. 10/12/2025, 2025-06-15)
+  const separatorPattern = /\d{1,4}[\/\-\.]\d{1,2}/;
+  // B. Simple ISO-like date timestamp (e.g. 2025-06-15T00:00)
+  const isoPattern = /^\d{4}-\d{2}-\d{2}/;
+  // C. Month name (e.g. Jan 2025)
+  const monthNames = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
+
+  const matchesPattern = separatorPattern.test(str) || isoPattern.test(str) || monthNames.test(str);
+  if (!matchesPattern) return false;
+
   const time = Date.parse(str);
-  return !isNaN(time);
+  if (isNaN(time)) return false;
+  
+  const d = new Date(time);
+  const y = d.getFullYear();
+  return y >= 2000 && y <= 2100;
 };
 
 // Helper: Check if string is a boolean representation
@@ -96,7 +112,11 @@ const inferSchema = (rows, headers) => {
         type: 'text',
         detectedType: 'Text',
         nullable: true,
-        sampleValues: []
+        sampleValues: [],
+        nullRatio: 1,
+        uniqueRatio: 0,
+        cardinalityCount: 0,
+        cardinalityClass: 'binary'
       });
       return;
     }
@@ -119,6 +139,19 @@ const inferSchema = (rows, headers) => {
       if (isCurrencyString(v)) currencyCount++;
       if (isPercentageString(v)) percentageCount++;
     });
+
+    // --- Statistical properties (computed for universal semantic model) ---
+    const uniqueValues = new Set(values.map(v => String(v).toLowerCase().trim()));
+    const cardinalityCount = uniqueValues.size;
+    const nullRatio = parseFloat(((totalRows - values.length) / Math.max(totalRows, 1)).toFixed(4));
+    const uniqueRatio = parseFloat((cardinalityCount / Math.max(values.length, 1)).toFixed(4));
+
+    // Cardinality class: binary (2), low (<= 10), medium (< 50), high (>= 50)
+    let cardinalityClass;
+    if (cardinalityCount <= 2) cardinalityClass = 'binary';
+    else if (cardinalityCount <= 10) cardinalityClass = 'low';
+    else if (cardinalityCount < 50) cardinalityClass = 'medium';
+    else cardinalityClass = 'high';
 
     let inferredType = 'text';
     let detectedType = 'Text';
@@ -147,11 +180,8 @@ const inferSchema = (rows, headers) => {
       detectedType = 'Boolean';
     } else {
       // Check cardinality for Categorical vs Text
-      const uniqueValues = new Set(values);
-      const cardinality = uniqueValues.size;
-      
       // If low absolute unique values or low percentage of total rows, make categorical
-      if (cardinality <= 20 || (cardinality / totalRows) <= 0.15) {
+      if (cardinalityCount <= 20 || (cardinalityCount / totalRows) <= 0.15) {
         inferredType = 'categorical';
         detectedType = 'Category';
       }
@@ -165,7 +195,12 @@ const inferSchema = (rows, headers) => {
       type: inferredType,
       detectedType: detectedType,
       nullable: values.length < totalRows,
-      sampleValues: distinctSamples.map(v => v.toString())
+      sampleValues: distinctSamples.map(v => v.toString()),
+      // Statistical profile — feeds semanticClassifier, capabilityDiscoveryEngine, statisticalValidator
+      nullRatio,
+      uniqueRatio,
+      cardinalityCount,
+      cardinalityClass
     });
   });
 

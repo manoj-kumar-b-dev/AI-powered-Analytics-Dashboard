@@ -13,7 +13,7 @@ export const ChartInsights = ({ insights, yField }) => {
   };
 
   const isCurrency = yField && /revenue|sales_amount|amount|income|expenses|profit|cost/i.test(yField);
-  const prefix = isCurrency ? '$' : '';
+  const prefix = isCurrency ? '₹' : '';
 
   return (
     <div className="flex flex-col h-full min-w-0 max-w-full overflow-hidden bg-[#0A0E1A]/40 border border-[#1F2937]/50 rounded-2xl p-5 space-y-5 select-text">

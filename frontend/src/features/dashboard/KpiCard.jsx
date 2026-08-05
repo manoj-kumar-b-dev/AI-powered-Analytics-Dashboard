@@ -21,18 +21,16 @@ const calculateKpiValue = (kpi, data = []) => {
 
   if (kpi.aggregation === 'sum') {
     const sum = data.reduce((acc, row) => acc + cleanNumber(row[colName]), 0);
-    return typeof data[0]?.[colName] === 'string' && data[0]?.[colName].includes('$')
-      ? `$${sum.toLocaleString()}`
-      : sum.toLocaleString();
+    const isCurrency = (typeof data[0]?.[colName] === 'string' && (data[0]?.[colName].includes('$') || data[0]?.[colName].includes('₹'))) || /revenue|sales|amount|income|expenses|profit|cost|price|salary|fee/i.test(colName);
+    return isCurrency ? `₹${sum.toLocaleString()}` : sum.toLocaleString();
   }
 
   if (kpi.aggregation === 'avg') {
     const sum = data.reduce((acc, row) => acc + cleanNumber(row[colName]), 0);
     const avg = sum / data.length;
     const formattedAvg = Math.round(avg * 100) / 100;
-    return typeof data[0]?.[colName] === 'string' && data[0]?.[colName].includes('$')
-      ? `$${formattedAvg.toLocaleString()}`
-      : formattedAvg.toLocaleString();
+    const isCurrency = (typeof data[0]?.[colName] === 'string' && (data[0]?.[colName].includes('$') || data[0]?.[colName].includes('₹'))) || /revenue|sales|amount|income|expenses|profit|cost|price|salary|fee/i.test(colName);
+    return isCurrency ? `₹${formattedAvg.toLocaleString()}` : formattedAvg.toLocaleString();
   }
 
   return '-';

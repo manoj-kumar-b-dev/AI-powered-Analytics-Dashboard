@@ -30,8 +30,11 @@ export function ClientPreviewWizard({
   confirmedDataSources = [],
   targetDatasetId,
   setTargetDatasetId,
-  handleUploadAndSave
+  handleUploadAndSave,
+  uploadState = "idle"
 }) {
+  const isUploading = uploadState === "uploading" || uploadState === "saving";
+
   // Table search, sorting, and pagination logic
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -128,11 +131,12 @@ export function ClientPreviewWizard({
               <label className="text-[10px] text-gray-400 font-bold uppercase font-mono">Sheet</label>
               <select
                 value={selectedSheet}
+                disabled={isUploading}
                 onChange={(e) => {
                   setSelectedSheet(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-8 bg-[#050810]/80 border border-[#1F2937] text-xs text-white rounded-xl px-2.5 outline-none font-semibold hover:border-gray-600 transition-colors"
+                className="h-8 bg-[#050810]/80 border border-[#1F2937] text-xs text-white rounded-xl px-2.5 outline-none font-semibold hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {excelSheets.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -143,7 +147,8 @@ export function ClientPreviewWizard({
 
           <button
             onClick={resetUploadWizard}
-            className="p-1.5 rounded-lg border border-[#1F2937] hover:bg-slate-900 text-gray-400 hover:text-white cursor-pointer transition-colors"
+            disabled={isUploading}
+            className="p-1.5 rounded-lg border border-[#1F2937] hover:bg-slate-900 text-gray-400 hover:text-white cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Discard upload"
           >
             <X className="h-4 w-4" />
@@ -345,8 +350,9 @@ export function ClientPreviewWizard({
                       name="importAction"
                       value="confirm"
                       checked={importAction === "confirm"}
+                      disabled={isUploading}
                       onChange={() => setImportAction("confirm")}
-                      className="accent-[#8B5CF6]"
+                      className="accent-[#8B5CF6] disabled:opacity-50"
                     />
                     <span>Create New Dataset</span>
                   </label>
@@ -359,8 +365,9 @@ export function ClientPreviewWizard({
                           name="importAction"
                           value="replace"
                           checked={importAction === "replace"}
+                          disabled={isUploading}
                           onChange={() => setImportAction("replace")}
-                          className="accent-[#8B5CF6]"
+                          className="accent-[#8B5CF6] disabled:opacity-50"
                         />
                         <span>Replace Existing</span>
                       </label>
@@ -371,8 +378,9 @@ export function ClientPreviewWizard({
                           name="importAction"
                           value="append"
                           checked={importAction === "append"}
+                          disabled={isUploading}
                           onChange={() => setImportAction("append")}
-                          className="accent-[#8B5CF6]"
+                          className="accent-[#8B5CF6] disabled:opacity-50"
                         />
                         <span>Append Existing</span>
                       </label>
@@ -385,8 +393,9 @@ export function ClientPreviewWizard({
                     <label className="text-xs text-gray-400 font-medium shrink-0">Target Dataset:</label>
                     <select
                       value={targetDatasetId}
+                      disabled={isUploading}
                       onChange={(e) => setTargetDatasetId(e.target.value)}
-                      className="flex-1 min-w-0 max-w-full h-9 bg-[#050810]/80 border border-[#1F2937] text-xs text-white rounded-xl px-2.5 outline-none font-semibold focus:border-gray-500 transition-colors"
+                      className="flex-1 min-w-0 max-w-full h-9 bg-[#050810]/80 border border-[#1F2937] text-xs text-white rounded-xl px-2.5 outline-none font-semibold focus:border-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {confirmedDataSources.map((ds) => (
                         <option key={ds._id} value={ds._id}>
@@ -401,16 +410,42 @@ export function ClientPreviewWizard({
               <div className="flex gap-3 justify-end pt-2">
                 <button
                   onClick={resetUploadWizard}
-                  className="px-4 py-2 border border-[#1F2937] hover:bg-slate-900 rounded-xl text-gray-300 text-xs font-bold transition-all cursor-pointer bg-transparent"
+                  disabled={isUploading}
+                  className="px-4 py-2 border border-[#1F2937] hover:bg-slate-900 rounded-xl text-gray-300 text-xs font-bold transition-all cursor-pointer bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUploadAndSave}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:shadow-lg hover:shadow-purple-500/25 text-white text-xs font-bold transition-all border-none cursor-pointer flex items-center gap-1.5"
+                  disabled={isUploading || uploadState === "success"}
+                  className={`px-5 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white text-xs font-bold transition-all border-none flex items-center gap-1.5 ${
+                    isUploading || uploadState === "success"
+                      ? "opacity-60 cursor-not-allowed"
+                      : "hover:shadow-lg hover:shadow-purple-500/25 cursor-pointer"
+                  }`}
                 >
-                  <Save className="h-4 w-4" />
-                  {importAction === "replace" ? "Replace Dataset" : importAction === "append" ? "Append to Dataset" : "Upload & Save"}
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>{uploadState === "saving" ? "Saving..." : "Uploading..."}</span>
+                    </>
+                  ) : uploadState === "success" ? (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>Uploaded!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>
+                        {importAction === "replace"
+                          ? "Replace Dataset"
+                          : importAction === "append"
+                          ? "Append to Dataset"
+                          : "Upload & Save"}
+                      </span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

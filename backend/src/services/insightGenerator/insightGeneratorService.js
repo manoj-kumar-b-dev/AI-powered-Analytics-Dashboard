@@ -97,21 +97,23 @@ Each insight must:
 type must be one of: "sparkle" (positive/success), "trending" (neutral/informational), "warning" (alert/negative), "lightbulb" (tip/recommendation)
 severity must be one of: "success", "info", "warning", "critical"
 
-Respond with ONLY a valid JSON array. No markdown. No extra text:
-[
-  {
-    "id": "ins-<unique-short-key>",
-    "text": "<insight text with HTML spans>",
-    "type": "<sparkle|trending|warning|lightbulb>",
-    "severity": "<success|info|warning|critical>"
-  }
-]`;
+Respond with ONLY a valid JSON object. No markdown. No extra text:
+{
+  "insights": [
+    {
+      "id": "ins-<unique-short-key>",
+      "text": "<insight text with HTML spans>",
+      "type": "<sparkle|trending|warning|lightbulb>",
+      "severity": "<success|info|warning|critical>"
+    }
+  ]
+}`;
 }
 
 class InsightGeneratorService {
   /**
-   * Use Gemini LLM to generate domain-aware business insights.
-   * Falls back to rule-based insights if Gemini is unavailable.
+   * Use Gemini/Groq/xAI LLM to generate domain-aware business insights.
+   * Falls back to rule-based insights if LLM is unavailable.
    *
    * @param {Array} kpiSummary - Computed KPI cards from analyticsService.calculateKPIs()
    * @param {Array} anomalyList - Rule engine alerts
@@ -120,42 +122,51 @@ class InsightGeneratorService {
    * @returns {Promise<Array>}
    */
   async generateInsights(kpiSummary, anomalyList = [], domain = 'general', domainLabel = 'General') {
-    // Try Gemini first
+    // Try LLM first
     if (isGeminiAvailable()) {
       try {
         const prompt = buildInsightPrompt(kpiSummary, anomalyList, domain, domainLabel);
-        const result = await geminiGenerate(prompt);
+        const rawResult = await geminiGenerate(prompt);
 
-        if (!Array.isArray(result)) {
-          console.warn('[InsightGenerator] Gemini returned non-array, falling back');
+        const resultList = Array.isArray(rawResult)
+          ? rawResult
+          : (rawResult?.insights || rawResult?.data || []);
+
+        if (!Array.isArray(resultList)) {
+          console.warn('[InsightGenerator] LLM returned non-array, falling back');
           return fallbackGenerateInsights(kpiSummary, anomalyList);
         }
 
         const VALID_TYPES = new Set(['sparkle', 'trending', 'warning', 'lightbulb']);
         const VALID_SEVERITIES = new Set(['success', 'info', 'warning', 'critical']);
 
-        const valid = result.filter(r =>
-          r.id && typeof r.text === 'string' && r.text.length > 0 &&
+        const valid = resultList.filter(r =>
+          r && r.id && typeof r.text === 'string' && r.text.length > 0 &&
           VALID_TYPES.has(r.type) &&
           VALID_SEVERITIES.has(r.severity)
         ).slice(0, 8);
 
         if (valid.length === 0) {
-          console.warn('[InsightGenerator] Gemini returned no valid insights, falling back');
+          console.warn('[InsightGenerator] LLM returned no valid insights, falling back');
           return fallbackGenerateInsights(kpiSummary, anomalyList);
         }
 
-        console.log(`[InsightGenerator] Gemini generated ${valid.length} insights for domain: ${domain}`);
+        console.log(`[InsightGenerator] LLM generated ${valid.length} insights for domain: ${domain}`);
+        console.log('[InsightGenerator] LLM Insight Generation Result:\n', JSON.stringify(valid, null, 2));
         return valid;
 
       } catch (err) {
         console.error('[InsightGenerator] Gemini error, falling back:', err.message);
-        return fallbackGenerateInsights(kpiSummary, anomalyList);
+        const fallbackResults = fallbackGenerateInsights(kpiSummary, anomalyList);
+        console.log('[InsightGenerator] Fallback Insight Generation Result:\n', JSON.stringify(fallbackResults, null, 2));
+        return fallbackResults;
       }
     }
 
     // Gemini not configured — use rule-based fallback
-    return fallbackGenerateInsights(kpiSummary, anomalyList);
+    const fallbackResults = fallbackGenerateInsights(kpiSummary, anomalyList);
+    console.log('[InsightGenerator] Fallback Insight Generation Result:\n', JSON.stringify(fallbackResults, null, 2));
+    return fallbackResults;
   }
 }
 

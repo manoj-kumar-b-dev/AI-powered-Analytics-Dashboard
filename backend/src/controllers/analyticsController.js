@@ -4,6 +4,7 @@ const DataRow = require('../models/dataRow');
 const ChartRecommendationService = require('../services/chartRecommendation/chartRecommendationService');
 const KPIRecommendationService = require('../services/kpiRecommendation/kpiRecommendationService');
 const AnalyticsService = require('../services/analyticsService');
+const { buildTemporalPipeline } = require('../analytics/execution/temporalAggregationExecutor');
 
 // -------------------------------------------------------
 // GET /analytics/:id/suggest-charts
@@ -56,18 +57,26 @@ exports.chartData = async (req, res) => {
       return res.status(400).json({ error: { code: 'BAD_REQUEST', message: `xField "${xField}" not found in dataset schema` } });
     }
 
-    const isDate = xCol.type === 'date';
+    const isDate = Boolean(
+      xCol && (
+        xCol.type === 'date' ||
+        xCol.semanticRole === 'temporal_dimension' ||
+        xCol.isTemporal ||
+        /date|time|day|month|year|timestamp|created_at|updated_at|period/i.test(xField)
+      )
+    );
     const isScatter = yCol && aggregation === 'none';
 
-    let pipeline = [];
-    pipeline.push({ $match: { dataSourceId: new mongoose.Types.ObjectId(id), orgId: new mongoose.Types.ObjectId(req.user.orgId) } });
+    const baseMatch = { dataSourceId: new mongoose.Types.ObjectId(id), orgId: new mongoose.Types.ObjectId(req.user.orgId) };
+    let pipeline = [{ $match: baseMatch }];
 
+    // ── Scatter / raw projection ──────────────────────────────────────────────
     if (isScatter || aggregation === 'none') {
       pipeline.push({
         $project: {
           _id: 0,
-          x: `$data.${xField}`,
-          y: yCol ? `$data.${yField}` : null
+          x: `₹data.${xField}`,
+          y: yCol ? `₹data.${yField}` : null
         }
       });
       pipeline.push({ $limit: 150 });
@@ -80,6 +89,57 @@ exports.chartData = async (req, res) => {
       });
     }
 
+    // ── Date / time-series: use granularity-aware temporal aggregation ─────────
+    if (isDate) {
+      try {
+        // Determine the actual date range so we can pick the right granularity
+        const bounds = await DataRow.aggregate([
+          { $match: baseMatch },
+          { $match: { [`data.${xField}`]: { $ne: null, $exists: true } } },
+          {
+            $project: {
+              dateVal: {
+                $convert: {
+                  input: `$data.${xField}`,
+                  to: 'date',
+                  onError: null,
+                  onNull: null
+                }
+              }
+            }
+          },
+          { $match: { dateVal: { $ne: null } } },
+          { $group: { _id: null, min: { $min: '$dateVal' }, max: { $max: '$dateVal' } } }
+        ]);
+
+        const minDate = bounds[0]?.min ? new Date(bounds[0].min) : null;
+        const maxDate = bounds[0]?.max ? new Date(bounds[0].max) : null;
+        const metricField = (yField && yField !== '_count') ? yField : null;
+
+        const temporal = buildTemporalPipeline(xField, metricField, aggregation, minDate, maxDate);
+
+        // Build full pipeline: base match → temporal stages (which include their own $match, $group, $project, $sort)
+        const fullPipeline = [
+          { $match: baseMatch },
+          // Filter null dates before temporal grouping
+          { $match: { [`data.${xField}`]: { $ne: null, $exists: true } } },
+          // Exclude temporal pipeline's own $match stages since we already match above
+          ...temporal.pipeline.filter(s => !s.$match)
+        ];
+
+        const results = await DataRow.aggregate(fullPipeline);
+        return res.status(200).json({
+          data: results,
+          granularity: temporal.granularity,
+          downsampled: false
+        });
+      } catch (temporalErr) {
+        console.error('[chartData] Temporal pipeline error:', temporalErr.message, '— falling back to categorical grouping.');
+        // Fall through to categorical grouping below
+      }
+    }
+
+    // ── Categorical grouping (non-date x-axis) ────────────────────────────────
     let groupStage = { _id: `$data.${xField}` };
 
     if (aggregation === 'count') {
@@ -94,34 +154,30 @@ exports.chartData = async (req, res) => {
 
     pipeline.push({ $group: groupStage });
     pipeline.push({ $project: { _id: 0, x: '$_id', y: '$yVal' } });
-
-    if (isDate) {
-      pipeline.push({ $sort: { x: 1 } });
-    } else {
-      pipeline.push({ $sort: { y: -1 } });
-    }
+    pipeline.push({ $sort: { y: -1 } });
 
     let results = await DataRow.aggregate(pipeline);
 
+    // Cap categories to top-N + "Other" bucket (only for non-date categorical charts)
     const maxPoints = 100;
     let downsampled = false;
     if (results.length > maxPoints) {
       downsampled = true;
-      if (isDate) {
-        const interval = Math.ceil(results.length / maxPoints);
-        results = results.filter((_, index) => index % interval === 0).slice(0, maxPoints);
-      } else {
+      if (!isDate) {
         const topRows = results.slice(0, maxPoints - 1);
         const otherRows = results.slice(maxPoints - 1);
         const otherSum = otherRows.reduce((acc, row) => acc + (row.y || 0), 0);
         results = [...topRows, { x: 'Other', y: otherSum }];
+      } else {
+        const step = Math.ceil(results.length / maxPoints);
+        results = results.filter((_, idx) => idx % step === 0).slice(0, maxPoints);
       }
     }
 
     return res.status(200).json({
       data: results,
       downsampled,
-      message: downsampled ? 'Data downsampled to 100 buckets for chart stability.' : undefined
+      message: downsampled ? 'Data downsampled to top 100 points.' : undefined
     });
   } catch (err) {
     console.error('Chart Data Error:', err);
@@ -165,6 +221,9 @@ exports.updateKpiMapping = async (req, res) => {
     const updatedMapping = { ...dataSource.kpiMapping, ...mappings };
     await DataSource.updateOne({ _id: id, orgId: req.user.orgId }, { $set: { kpiMapping: updatedMapping } });
 
+    // Regenerate dashboard cache immediately so changes are reflected in the UI
+    await AnalyticsService.persistAnalytics(id, req.user.orgId);
+
     return res.status(200).json({
       message: 'KPI overrides updated successfully',
       kpiMapping: updatedMapping
@@ -193,16 +252,9 @@ exports.getKpis = async (req, res) => {
 
     const domain = dataSource.domain || 'general';
     const mappedColsList = await KPIRecommendationService.recommendKPIs(dataSource.schema, domain);
-    const mappedCols = {};
-    dataSource.schema.forEach(c => { mappedCols[c.column] = c.column; });
-    mappedColsList.forEach(m => { mappedCols[m.kpi] = m.column; });
-    if (dataSource.kpiMapping) {
-      Object.keys(dataSource.kpiMapping).forEach(k => {
-        if (dataSource.kpiMapping[k]) mappedCols[k] = dataSource.kpiMapping[k];
-      });
-    }
+    const activeKPIs = AnalyticsService.getActiveKPIList(dataSource, mappedColsList);
 
-    const cards = await AnalyticsService.calculateKPIs(dataSource, mappedCols, req.query);
+    const cards = await AnalyticsService.calculateKPIs(dataSource, activeKPIs, req.query);
     return res.status(200).json(cards);
   } catch (err) {
     console.error('Fetch KPIs Error:', err);

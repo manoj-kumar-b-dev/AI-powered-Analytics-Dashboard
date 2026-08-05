@@ -9,26 +9,30 @@
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.GROK_API_KEY;
 
 let genAI = null;
 let model = null;
-let useGroq = false;
-let groqModelName = 'llama-3.3-70b-versatile';
+let apiProvider = 'gemini'; // 'gemini' | 'groq' | 'xai'
+let modelName = 'gemini-2.0-flash';
 
 if (apiKey && apiKey !== 'your_gemini_api_key_here') {
   if (apiKey.startsWith('gsk_')) {
-    useGroq = true;
-    groqModelName = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-    model = {
-      modelName: groqModelName
-    };
-    console.log('[Groq] Client initialized (via gemini config) — AI-powered KPI/Chart/Insight generation active.');
+    apiProvider = 'groq';
+    modelName = process.env.GROQ_MODEL || process.env.GROK_MODEL || 'llama-3.3-70b-versatile';
+    model = { modelName };
+    console.log(`[Groq] Client initialized (${modelName}) — AI-powered KPI/Chart/Insight generation active.`);
+  } else if (apiKey.startsWith('xai-')) {
+    apiProvider = 'xai';
+    modelName = process.env.GROK_MODEL || 'grok-beta';
+    model = { modelName };
+    console.log(`[xAI Grok] Client initialized (${modelName}) — AI-powered KPI/Chart/Insight generation active.`);
   } else {
     try {
       genAI = new GoogleGenerativeAI(apiKey);
+      modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
       model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+        model: modelName,
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.2,       // Low temp = deterministic, consistent suggestions
@@ -36,13 +40,13 @@ if (apiKey && apiKey !== 'your_gemini_api_key_here') {
           maxOutputTokens: 4096
         }
       });
-      console.log('[Gemini] Client initialized — AI-powered KPI/Chart/Insight generation active.');
+      console.log(`[Gemini] Client initialized (${modelName}) — AI-powered KPI/Chart/Insight generation active.`);
     } catch (err) {
       console.error('[Gemini] Failed to initialize client:', err.message);
     }
   }
 } else {
-  console.warn('[Gemini] GEMINI_API_KEY not set. AI suggestions will be disabled. Set GEMINI_API_KEY in .env to enable LLM-powered recommendations.');
+  console.warn('[Gemini/Groq/xAI] API key not set. Set GEMINI_API_KEY, GROQ_API_KEY, or GROK_API_KEY in .env to enable LLM-powered recommendations.');
 }
 
 const QUEUE_DELAY_MS = 4000; // 4 seconds delay = ~15 requests per minute
@@ -59,7 +63,7 @@ async function processQueue() {
     try {
       let responseText;
 
-      if (useGroq) {
+      if (apiProvider === 'groq') {
         // Call Groq API via fetch
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -68,7 +72,7 @@ async function processQueue() {
             'Authorization': `Bearer ${apiKey}`
           },
           body: JSON.stringify({
-            model: groqModelName,
+            model: modelName,
             messages: [
               {
                 role: 'user',
@@ -84,6 +88,34 @@ async function processQueue() {
         if (!response.ok) {
           const errText = await response.text();
           throw new Error(`Groq API Error: ${response.status} ${response.statusText} - ${errText}`);
+        }
+
+        const data = await response.json();
+        responseText = data.choices?.[0]?.message?.content?.trim();
+      } else if (apiProvider === 'xai') {
+        // Call xAI Grok API via fetch
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.2
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`xAI Grok API Error: ${response.status} ${response.statusText} - ${errText}`);
         }
 
         const data = await response.json();

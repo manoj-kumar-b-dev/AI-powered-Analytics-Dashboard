@@ -9,7 +9,7 @@ import {
   Maximize2,
   Download,
   Activity,
-  DollarSign,
+  IndianRupee,
   TrendingUp,
   BarChart3,
   ShoppingBag,
@@ -42,7 +42,7 @@ export function WidgetWrapper({
   const getWidgetTheme = () => {
     const t = title.toLowerCase();
     if (t.includes("revenue")) {
-      return { color: "border-t-purple-500", glow: "card-glow-purple", icon: DollarSign };
+      return { color: "border-t-purple-500", glow: "card-glow-purple", icon: IndianRupee };
     }
     if (t.includes("sales") || t.includes("weekly")) {
       return { color: "border-t-blue-500", glow: "card-glow-blue", icon: BarChart3 };

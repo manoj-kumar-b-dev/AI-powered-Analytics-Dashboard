@@ -1,8 +1,10 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Org = require('../models/org');
 const RefreshToken = require('../models/refreshToken');
 const { registerSchema, loginSchema } = require('../validators/authValidator');
+const { sendPasswordResetEmail } = require('../services/emailService');
 const {
   hashToken,
   generateAccessToken,
@@ -335,3 +337,84 @@ exports.me = async (req, res) => {
     });
   }
 };
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Email address is required' } });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(200).json({ message: 'If an account exists with that email, a password reset link has been sent.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    user.resetPasswordToken = tokenHash;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    await sendPasswordResetEmail(user.email, resetUrl);
+
+    return res.status(200).json({ message: 'Password reset link sent to your email.' });
+  } catch (err) {
+    console.error('Forgot Password Error:', err);
+    return res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to process forgot password request'
+      }
+    });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Token and new password are required' } });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Password must be at least 6 characters' } });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: tokenHash,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Invalid or expired password reset token'
+        }
+      });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Reset Password Error:', err);
+    return res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to reset password'
+      }
+    });
+  }
+};
+

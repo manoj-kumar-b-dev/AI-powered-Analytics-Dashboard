@@ -136,76 +136,6 @@ export function Topbar({
         
         {/* Title, Workspace Info & Welcome */}
         <div className="flex-1 min-w-0 flex items-center gap-3">
-          <div className="hidden lg:flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#1F2937] bg-slate-900/40 hover:bg-slate-800/60 hover:border-gray-600 transition-all text-xs font-semibold text-gray-300 cursor-pointer">
-                  <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                  <span>{activeOrg.name}</span>
-                  <ChevronDown className="h-3 w-3 text-gray-500" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 bg-[#111827] border border-[#1F2937] text-gray-300">
-                <div className="px-2.5 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                  Select Workspace
-                </div>
-                {(organisations || []).map((org) => {
-                  const orgId = org.orgId || org._id;
-                  return (
-                    <DropdownMenuItem
-                      key={orgId}
-                      className="hover:bg-slate-800 cursor-pointer flex items-center justify-between text-xs py-2 "
-                      onClick={() => switchOrg(orgId)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                        <span>{org.name}</span>
-                      </div>
-                      {orgId === activeOrgId && <Check className="h-3.5 w-3.5 text-[#22C55E]" />}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="h-4 w-[1px] bg-[#1F2937]" />
-
-            {/* Active Dataset Selector Dropdown */}
-            {dataSources && dataSources.length > 0 && (
-              <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#1F2937] bg-slate-900/40 hover:bg-slate-800/60 hover:border-gray-600 transition-all text-xs font-semibold text-gray-300 cursor-pointer max-w-[200px]">
-                      <Database className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span className="truncate">
-                        {dataSources.find(ds => ds._id === selectedDSId)?.fileName || "Select Dataset..."}
-                      </span>
-                      <ChevronDown className="h-3 w-3 text-gray-500 shrink-0" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64 bg-[#111827] border border-[#1F2937] text-gray-300 rounded-xl p-1 shadow-2xl">
-                    <div className="px-2.5 py-1.5 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
-                      Select Dataset
-                    </div>
-                    {dataSources.map((ds) => (
-                      <DropdownMenuItem
-                        key={ds._id}
-                        className="hover:bg-slate-800 cursor-pointer flex items-center justify-between text-xs py-2 px-2.5 rounded-lg"
-                        onClick={() => onDatasetChange?.(ds._id)}
-                      >
-                        <div className="flex items-center gap-2 truncate font-semibold">
-                          <Database className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                          <span className="truncate text-gray-200">{ds.fileName}</span>
-                        </div>
-                        {ds._id === selectedDSId && <Check className="h-3.5 w-3.5 text-[#22C55E] shrink-0" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <div className="h-4 w-[1px] bg-[#1F2937]" />
-              </>
-            )}
-          </div>
-
           <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-bold font-display text-white tracking-tight truncate flex items-center gap-2">
               {title}
@@ -216,6 +146,79 @@ export function Topbar({
               </p>
             )}
           </div>
+
+          {/* Workspace selector (hidden on mobile, visible on md+) */}
+          {organisations && organisations.length > 0 && (
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              <div className="h-4 w-[1px] bg-[#1F2937] mr-2 shrink-0" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#1F2937] bg-slate-900/40 hover:bg-slate-800/60 hover:border-gray-600 transition-all text-xs font-semibold text-gray-300 cursor-pointer">
+                    <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
+                    <span>{activeOrg.name}</span>
+                    <ChevronDown className="h-3 w-3 text-gray-500" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 bg-[#111827] border border-[#1F2937] text-gray-300">
+                  <div className="px-2.5 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    Select Workspace
+                  </div>
+                  {(organisations || []).map((org) => {
+                    const orgId = org.orgId || org._id;
+                    return (
+                      <DropdownMenuItem
+                        key={orgId}
+                        className="hover:bg-slate-800 cursor-pointer flex items-center justify-between text-xs py-2 "
+                        onClick={() => switchOrg(orgId)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
+                          <span>{org.name}</span>
+                        </div>
+                        {orgId === activeOrgId && <Check className="h-3.5 w-3.5 text-[#22C55E]" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+
+          {/* Active Dataset Selector Dropdown (visible on all screens!) */}
+          {dataSources && dataSources.length > 0 && (
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="h-4 w-[1px] bg-[#1F2937] mx-1 md:mx-2 shrink-0" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 rounded-xl border border-[#1F2937] bg-slate-900/40 hover:bg-slate-800/60 hover:border-gray-600 transition-all text-xs font-semibold text-gray-300 cursor-pointer max-w-[130px] sm:max-w-[200px]">
+                    <Database className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">
+                      {dataSources.find(ds => ds._id === selectedDSId)?.fileName || "Select Dataset..."}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-gray-500 shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64 bg-[#111827] border border-[#1F2937] text-gray-300 rounded-xl p-1 shadow-2xl">
+                  <div className="px-2.5 py-1.5 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
+                    Select Dataset
+                  </div>
+                  {dataSources.map((ds) => (
+                    <DropdownMenuItem
+                      key={ds._id}
+                      className="hover:bg-slate-800 cursor-pointer flex items-center justify-between text-xs py-2 px-2.5 rounded-lg"
+                      onClick={() => onDatasetChange?.(ds._id)}
+                    >
+                      <div className="flex items-center gap-2 truncate font-semibold">
+                        <Database className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate text-gray-200">{ds.fileName}</span>
+                      </div>
+                      {ds._id === selectedDSId && <Check className="h-3.5 w-3.5 text-[#22C55E] shrink-0" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
 
         {/* Global Search Bar (Trigger) */}

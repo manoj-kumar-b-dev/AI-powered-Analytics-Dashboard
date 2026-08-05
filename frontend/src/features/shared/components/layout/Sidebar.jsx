@@ -16,7 +16,6 @@ import {
   LogOut,
   BrainCircuit,
   Building,
-  Check,
   ChevronDown
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -152,7 +151,7 @@ export function Sidebar({
                         <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
                         <span>{org.name}</span>
                       </div>
-                      {orgId === activeOrgId && <Check className="h-3.5 w-3.5 text-[#22C55E]" />}
+
                     </DropdownMenuItem>
                   );
                 })}
@@ -162,7 +161,7 @@ export function Sidebar({
         )}
 
         {/* Navigation items grouped by sections */}
-        <nav className="px-3 py-3 space-y-4 overflow-y-auto max-h-[calc(100vh-270px)] custom-scrollbar">
+        <nav className="px-3 py-3 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] custom-scrollbar">
           {sections.map((section) => (
             <div key={section.title} className="space-y-1">
               {!isCollapsed ? (
@@ -181,11 +180,10 @@ export function Sidebar({
                   <button
                     key={item.name}
                     onClick={() => onTabChange && onTabChange(item.name)}
-                    className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs transition-all duration-200 group relative border-none bg-transparent ${
-                      isActive
-                        ? "bg-[#8B5CF6] text-white font-bold shadow-lg shadow-purple-500/20"
-                        : "text-gray-400 hover:text-white hover:bg-slate-900/40"
-                    }`}
+                    className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs transition-all duration-200 group relative border-none bg-transparent ${isActive
+                      ? "bg-[#8B5CF6] text-white font-bold shadow-lg shadow-purple-500/20"
+                      : "text-gray-400 hover:text-white hover:bg-slate-900/40"
+                      }`}
                     title={isCollapsed ? item.name : undefined}
                   >
                     {/* Active Pill Glow */}
@@ -194,9 +192,8 @@ export function Sidebar({
                     )}
 
                     <motion.div whileTap={{ scale: 0.9 }}>
-                      <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${
-                        isActive ? "text-white" : "text-gray-400 group-hover:text-white"
-                      }`} />
+                      <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${isActive ? "text-white" : "text-gray-400 group-hover:text-white"
+                        }`} />
                     </motion.div>
 
                     {!isCollapsed && (
@@ -225,64 +222,13 @@ export function Sidebar({
 
       {/* Sidebar Footer */}
       <div className="p-3 space-y-3">
-        
-        {/* Redesigned Premium Upgrade promotion card */}
-        {!isCollapsed ? (
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1E1B4B]/80 via-[#311042]/50 to-[#0F172A]/80 border border-purple-500/25 relative overflow-hidden group shadow-xl">
-            {/* Ambient Background Glow */}
-            <div className="absolute top-0 right-0 h-16 w-16 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition-all duration-300" />
-            
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <div className="p-1 rounded bg-[#8B5CF6]/20 text-[#c084fc] flex items-center justify-center">
-                <Crown className="h-3.5 w-3.5" />
-              </div>
-              <span className="text-[10px] font-extrabold text-white tracking-wider uppercase bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-300">
-                PRO MEMBERSHIP
-              </span>
-            </div>
-            
-            <ul className="text-[9px] text-gray-400 space-y-1 mb-3.5 leading-normal">
-              <li className="flex items-center gap-1">
-                <Check className="h-2.5 w-2.5 text-[#22C55E] shrink-0" /> AI Forecasting
-              </li>
-              <li className="flex items-center gap-1">
-                <Check className="h-2.5 w-2.5 text-[#22C55E] shrink-0" /> Unlimited Reports
-              </li>
-              <li className="flex items-center gap-1">
-                <Check className="h-2.5 w-2.5 text-[#22C55E] shrink-0" /> Team Workspaces
-              </li>
-              <li className="flex items-center gap-1">
-                <Check className="h-2.5 w-2.5 text-[#22C55E] shrink-0" /> PDF Exports & White Labeling
-              </li>
-            </ul>
-
-            <button
-              onClick={() => alert("Upgrade triggered!")}
-              className="w-full text-[10px] font-bold h-8.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:shadow-lg hover:shadow-purple-500/20 text-white transition-all cursor-pointer border-none"
-            >
-              Upgrade Now
-            </button>
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <button
-              onClick={() => alert("Upgrade triggered!")}
-              className="w-full text-center text-[10px] text-[#a78bfa] hover:text-purple-300 font-bold py-2 border border-dashed border-[#8B5CF6]/30 rounded-xl hover:bg-purple-950/15 cursor-pointer bg-transparent"
-              title="Upgrade Plan"
-            >
-              <Crown className="h-4.5 w-4.5" />
-            </button>
-          </div>
-        )}
-
-
 
         {/* User Profile */}
         <div className="border-t border-[#1F2937]/30 pt-3 flex items-center justify-between min-h-[52px]">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <Avatar className="h-9 w-9 shrink-0 border border-[#1f2937]">
               <AvatarImage src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" />
-              <AvatarFallback>{user?.name ? user.name.slice(0,2).toUpperCase() : "JD"}</AvatarFallback>
+              <AvatarFallback>{user?.name ? user.name.slice(0, 2).toUpperCase() : "JD"}</AvatarFallback>
             </Avatar>
             {!isCollapsed && (
               <div className="flex flex-col text-left truncate">

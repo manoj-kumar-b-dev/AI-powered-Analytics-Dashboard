@@ -11,6 +11,10 @@ const ChartRecommendationService = require('./chartRecommendation/chartRecommend
 const AnalyticsEngine = require('./analytics/analyticsEngine');
 const InsightGeneratorService = require('./insightGenerator/insightGeneratorService');
 
+// Universal pipeline validation + temporal execution
+const { buildTemporalPipeline } = require('../analytics/execution/temporalAggregationExecutor');
+const { validateChartResult, validateKPIResult } = require('../analytics/validation/resultValidator');
+
 // Helper: Format Numbers (USD Default, K/M/B Abbreviated)
 const formatValue = (num, type) => {
   if (num === null || num === undefined || isNaN(num)) return '—';
@@ -31,12 +35,12 @@ const formatValue = (num, type) => {
   }
 
   const isCurrency = type === 'currency';
-  const formattedVal = val.toLocaleString('en-US', {
+  const formattedVal = val.toLocaleString('en-IN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 1
   });
 
-  return isCurrency ? `$${formattedVal}${suffix}` : `${formattedVal}${suffix}`;
+  return isCurrency ? `₹${formattedVal}${suffix}` : `${formattedVal}${suffix}`;
 };
 
 // Build MongoDB Match Stage based on schema mapping and filters
@@ -90,6 +94,42 @@ const buildMatchStage = async (dataSource, mappedCols, filters) => {
 };
 
 class AnalyticsService {
+  static generateChartTitle(xField, yField, aggregation) {
+    const agg = (aggregation || '').toLowerCase();
+    if (agg === 'none' || !agg) {
+      return `Distribution of ${yField} by ${xField}`;
+    }
+    if (yField === '_count' || agg === 'count') {
+      return `Count of Records by ${xField}`;
+    }
+    return `${agg.toUpperCase()} of ${yField} by ${xField}`;
+  }
+
+  static computeComparison({ currentVal, priorVal, currentCount, priorCount, hasDateCol, hasPeriodBounds }) {
+    let deltaPct = null;
+    let deltaDirection = 'flat';
+    let period = null;
+
+    if (hasDateCol && hasPeriodBounds) {
+      if (currentCount === 0) {
+        period = 'No data for this period';
+      } else if (priorCount === 0) {
+        period = 'No prior period data for comparison';
+      } else if (priorVal === 0) {
+        deltaPct = currentVal > 0 ? 100 : 0;
+        deltaDirection = currentVal > 0 ? 'up' : 'flat';
+        period = 'vs prior period';
+      } else {
+        const diff = currentVal - priorVal;
+        deltaPct = Math.round((diff / Math.abs(priorVal)) * 1000) / 10;
+        deltaDirection = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+        period = 'vs prior period';
+      }
+    }
+
+    return { deltaPct, deltaDirection, period };
+  }
+
   /**
    * Helper to consistently calculate boundary dates for current and prior periods.
    * Derives boundaries relative to maxDate from the dataset, not the system clock.
@@ -124,13 +164,89 @@ class AnalyticsService {
     return { currentStart, currentEnd, priorStart, priorEnd };
   }
 
-  static async calculateKPIs(dataSource, mappedCols, filters) {
-    const revCol = mappedCols.revenue;
-    const salesCol = mappedCols.sales;
-    const custCol = mappedCols.customers;
-    const expCol = mappedCols.expenses;
-    const profitCol = mappedCols.profit;
-    const dateCol = mappedCols.date;
+  static getActiveKPIList(dataSource, mappedColsList) {
+    const activeKPIs = [...mappedColsList];
+    if (dataSource.kpiMapping) {
+      Object.entries(dataSource.kpiMapping).forEach(([kpiKey, colName]) => {
+        if (!colName) return;
+        const existing = activeKPIs.find(m => m.kpi === kpiKey);
+        if (existing) {
+          existing.column = colName;
+        } else {
+          // Standard metadata guesses for manual overrides if not in recommended list
+          const label = kpiKey.charAt(0).toUpperCase() + kpiKey.slice(1).replace(/_/g, ' ');
+          const isCurrency = ['revenue', 'expenses', 'profit'].includes(kpiKey.toLowerCase());
+          activeKPIs.push({
+            kpi: kpiKey,
+            column: colName,
+            label,
+            format: isCurrency ? 'currency' : 'number',
+            icon: (kpiKey.toLowerCase() === 'revenue' || isCurrency) ? 'IndianRupee' : kpiKey.toLowerCase() === 'sales' ? 'ShoppingCart' : 'Activity',
+            color: 'blue'
+          });
+        }
+      });
+    }
+    return activeKPIs;
+  }
+
+  static getKpiAggregation(kpiKey, colName, colType, explicitAggregation) {
+    // If the semantic pipeline already determined the aggregation, use it directly
+    if (explicitAggregation) {
+      const aggNorm = explicitAggregation.toLowerCase().trim();
+      // Map 'count_distinct' / 'distinct' to 'distinct' for internal use
+      if (aggNorm === 'count_distinct' || aggNorm === 'distinct') return 'distinct';
+      if (aggNorm === 'avg' || aggNorm === 'sum' || aggNorm === 'count' || aggNorm === 'min' || aggNorm === 'max') return aggNorm;
+    }
+
+    // Fallback heuristic (used only when aggregation is not explicitly set by pipeline)
+    const kpiLower = kpiKey.toLowerCase();
+    const colLower = colName.toLowerCase();
+
+    if (colType === 'numeric' || colType === 'currency' || colType === 'percentage') {
+      if (
+        kpiLower.includes('salary') ||
+        kpiLower.includes('rating') ||
+        kpiLower.includes('attendance') ||
+        kpiLower.includes('margin') ||
+        kpiLower.includes('ratio') ||
+        kpiLower.includes('pct') ||
+        kpiLower.includes('percent') ||
+        kpiLower.includes('avg') ||
+        kpiLower.includes('average') ||
+        kpiLower.includes('score') ||
+        kpiLower.includes('age') ||
+        colLower.includes('salary') ||
+        colLower.includes('rating') ||
+        colLower.includes('attendance') ||
+        colLower.includes('margin') ||
+        colLower.includes('ratio') ||
+        colLower.includes('pct') ||
+        colLower.includes('percent') ||
+        colLower.includes('avg') ||
+        colLower.includes('average') ||
+        colLower.includes('score') ||
+        colLower.includes('age')
+      ) {
+        return 'avg';
+      }
+      return 'sum';
+    }
+
+    if (colLower.endsWith('id') || colLower.includes('id_') || colLower.includes('_id') || kpiLower.includes('customer') || kpiLower.includes('employee') || kpiLower.includes('headcount')) {
+      return 'distinct';
+    }
+    return 'count';
+  }
+
+  static async calculateKPIs(dataSource, mappedColsList, filters) {
+    const dateKpi = mappedColsList.find(m => m.kpi === 'date');
+    const dateCol = dateKpi ? dateKpi.column : dataSource.schema.find(c => c.type === 'date')?.column;
+
+    const mappedCols = { date: dateCol };
+    mappedColsList.forEach(m => {
+      mappedCols[m.kpi] = m.column;
+    });
 
     // Remove date constraint to ensure we query data for the prior period as well
     const filtersNoDate = { ...filters };
@@ -161,201 +277,199 @@ class AnalyticsService {
       }
     }
 
-    const groupStage = {
-      _id: null,
-      totalRevenue: revCol ? (
-        periodBounds ? { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, periodBounds.currentStart] }, `$data.${revCol}`, 0] } } : { $sum: `$data.${revCol}` }
-      ) : { $sum: 0 },
-      totalSales: salesCol ? (
-        periodBounds ? { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, periodBounds.currentStart] }, `$data.${salesCol}`, 0] } } : { $sum: `$data.${salesCol}` }
-      ) : { $sum: 1 },
-      totalExpenses: expCol ? (
-        periodBounds ? { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, periodBounds.currentStart] }, `$data.${expCol}`, 0] } } : { $sum: `$data.${expCol}` }
-      ) : { $sum: 0 },
-      totalProfit: profitCol ? (
-        periodBounds ? { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, periodBounds.currentStart] }, `$data.${profitCol}`, 0] } } : { $sum: `$data.${profitCol}` }
-      ) : { $sum: 0 },
-    };
+    const cards = [];
 
-    if (dateCol && periodBounds) {
-      const { currentStart, priorStart, priorEnd } = periodBounds;
+    // Filter out date KPI since it is not displayed as a card
+    const numericKpis = mappedColsList.filter(m => m.kpi !== 'date');
 
-      groupStage.currentRowCount = {
-        $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, 1, 0] }
-      };
+    const regularKpis = [];
+    const distinctKpis = [];
 
-      groupStage.priorRevenue = revCol ? {
-        $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, `$data.${revCol}`, 0] }
-      } : { $sum: 0 };
-      groupStage.currentRevenue = revCol ? {
-        $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${revCol}`, 0] }
-      } : { $sum: 0 };      
-      groupStage.priorSales = salesCol ? {
-        $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, `$data.${salesCol}`, 0] }
-      } : {
-        $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, 1, 0] }
-      };
-      groupStage.currentSales = salesCol ? {
-        $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${salesCol}`, 0] }
-      } : {
-        $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, 1, 0] }
-      };
+    numericKpis.forEach(m => {
+      const colSchema = dataSource.schema.find(c => c.column === m.column);
+      const colType = colSchema ? colSchema.type : 'numeric';
+      // Pass explicit aggregation from semantic pipeline if available
+      const agg = this.getKpiAggregation(m.kpi, m.column, colType, m.aggregation);
 
-      groupStage.priorExpenses = expCol ? {
-        $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, `$data.${expCol}`, 0] }
-      } : { $sum: 0 };
-      groupStage.currentExpenses = expCol ? {
-        $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${expCol}`, 0] }
-      } : { $sum: 0 };
+      if (agg === 'distinct') {
+        distinctKpis.push({ kpi: m, agg });
+      } else {
+        regularKpis.push({ kpi: m, agg });
+      }
+    });
 
-      groupStage.priorProfit = profitCol ? {
-        $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, `$data.${profitCol}`, 0] }
-      } : { $sum: 0 };
-      groupStage.currentProfit = profitCol ? {
-        $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${profitCol}`, 0] }
-      } : { $sum: 0 };
-    }
+    // 1. Regular aggregate calculations via a single $group query
+    const groupStage = { _id: null };
 
-    const totalsResult = await DataRow.aggregate([
-      { $match: baseMatchNoDate },
-      { $group: groupStage }
-    ]);
+    regularKpis.forEach(({ kpi, agg }) => {
+      const col = kpi.column;
+      const kpiName = kpi.kpi;
 
-    const totals = totalsResult[0] || {
-      totalRevenue: 0, totalSales: 0, totalExpenses: 0, totalProfit: 0,
-      priorRevenue: 0, currentRevenue: 0, priorSales: 0, currentSales: 0,
-      priorExpenses: 0, currentExpenses: 0, priorProfit: 0, currentProfit: 0,
-      currentRowCount: 0
-    };
-
-    let totalCust = 0, priorCust = 0, currentCust = 0;
-    if (custCol) {
-      const custResult = await DataRow.aggregate([
-        { $match: baseMatchNoDate },
-        {
-          $group: {
-            _id: `$data.${custCol}`
-          }
-        },
-        { $count: "total" }
-      ]);
-      totalCust = custResult[0]?.total || 0;
-
-      if (dateCol && periodBounds) {
+      if (periodBounds) {
         const { currentStart, priorStart, priorEnd } = periodBounds;
 
-        const priorCustResult = await DataRow.aggregate([
-          { $match: { ...baseMatchNoDate, [`data.${dateCol}`]: { $gte: priorStart, $lt: priorEnd } } },
-          {
-            $group: {
-              _id: `$data.${custCol}`
-            }
-          },
-          { $count: "total" }
-        ]);
-        priorCust = priorCustResult[0]?.total || 0;
+        if (agg === 'sum') {
+          groupStage[`total_${kpiName}`] = { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${col}`, 0] } };
+          groupStage[`prior_${kpiName}`] = { $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, `$data.${col}`, 0] } };
+          groupStage[`current_${kpiName}`] = { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${col}`, 0] } };
+        } else if (agg === 'avg') {
+          groupStage[`total_${kpiName}`] = { $avg: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${col}`, null] } };
+          groupStage[`prior_${kpiName}`] = { $avg: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, `$data.${col}`, null] } };
+          groupStage[`current_${kpiName}`] = { $avg: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, `$data.${col}`, null] } };
+        } else if (agg === 'count') {
+          groupStage[`total_${kpiName}`] = { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, 1, 0] } };
+          groupStage[`prior_${kpiName}`] = { $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }] }, 1, 0] } };
+          groupStage[`current_${kpiName}`] = { $sum: { $cond: [{ $gte: [`$data.${dateCol}`, currentStart] }, 1, 0] } };
+        }
 
-        const currentCustResult = await DataRow.aggregate([
-          { $match: { ...baseMatchNoDate, [`data.${dateCol}`]: { $gte: currentStart } } },
-          {
-            $group: {
-              _id: `$data.${custCol}`
-            }
-          },
-          { $count: "total" }
-        ]);
-        currentCust = currentCustResult[0]?.total || 0;
+        groupStage[`currentCount_${kpiName}`] = { $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, currentStart] }, { $ne: [`$data.${col}`, null] }] }, 1, 0] } };
+        groupStage[`priorCount_${kpiName}`] = { $sum: { $cond: [{ $and: [{ $gte: [`$data.${dateCol}`, priorStart] }, { $lt: [`$data.${dateCol}`, priorEnd] }, { $ne: [`$data.${col}`, null] }] }, 1, 0] } };
+
+      } else {
+        if (agg === 'sum') {
+          groupStage[`total_${kpiName}`] = { $sum: `$data.${col}` };
+        } else if (agg === 'avg') {
+          groupStage[`total_${kpiName}`] = { $avg: `$data.${col}` };
+        } else if (agg === 'count') {
+          groupStage[`total_${kpiName}`] = { $sum: 1 };
+        }
       }
+    });
+
+    let totals = {};
+    if (Object.keys(groupStage).length > 1) {
+      const totalsResult = await DataRow.aggregate([
+        { $match: baseMatchNoDate },
+        { $group: groupStage }
+      ]);
+      totals = totalsResult[0] || {};
     }
 
-    const buildCard = (kpiName, label, val, isCurrency, priorVal, currentVal) => {
-      let deltaPct = null;
-      let deltaDirection = 'flat';
-      let period = null;
+    const buildCard = (kpiName, label, val, format, priorVal, currentVal, currentCount, priorCount) => {
+      const isCurrency = format === 'currency';
+      const isPercentage = format === 'percent';
 
-      if (dateCol && periodBounds && priorVal !== undefined && currentVal !== undefined) {
-        if (totals.currentRowCount === 0) {
-          deltaPct = null;
-          deltaDirection = 'flat';
-          period = 'No data for this period';
-        } else if (priorVal === 0) {
-          deltaPct = currentVal > 0 ? 100 : 0;
-          deltaDirection = currentVal > 0 ? 'up' : 'flat';
-          period = 'vs prior period';
-        } else {
-          const diff = currentVal - priorVal;
-          deltaPct = Math.round((diff / Math.abs(priorVal)) * 1000) / 10;
-          deltaDirection = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
-          period = 'vs prior period';
-        }
+      const { deltaPct, deltaDirection, period } = this.computeComparison({
+        currentVal,
+        priorVal,
+        currentCount,
+        priorCount,
+        hasDateCol: !!dateCol,
+        hasPeriodBounds: !!periodBounds
+      });
+
+      let formattedValue = val.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      if (isCurrency) {
+        formattedValue = `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+      } else if (isPercentage) {
+        formattedValue = `${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
       }
 
       return {
         kpi: kpiName,
         label,
         value: val,
-        formattedValue: isCurrency ? `$${val.toLocaleString()}` : val.toLocaleString(),
+        formattedValue,
         deltaPct,
         deltaDirection,
-        period: period || (dateCol && periodBounds ? 'vs prior period' : null)
+        period
       };
     };
 
-    const cards = [
-      buildCard('revenue', 'Total Revenue', totals.totalRevenue, true, totals.priorRevenue, totals.currentRevenue),
-      buildCard('sales', 'Total Quantity Sold', totals.totalSales, false, totals.priorSales, totals.currentSales)
-    ];
+    // 2. Process regular KPIs and push to cards
+    regularKpis.forEach(({ kpi }) => {
+      const kpiName = kpi.kpi;
+      const totalVal = totals[`total_${kpiName}`] || 0;
+      const priorVal = totals[`prior_${kpiName}`] || 0;
+      const currentVal = totals[`current_${kpiName}`] || 0;
+      const currentCount = totals[`currentCount_${kpiName}`] || 0;
+      const priorCount = totals[`priorCount_${kpiName}`] || 0;
 
-    if (custCol) {
-      cards.push(buildCard('customers', 'Total Customers', totalCust, false, priorCust, currentCust));
-    }
-    if (expCol) {
-      cards.push(buildCard('expenses', 'Total Expenses', totals.totalExpenses, true, totals.priorExpenses, totals.currentExpenses));
-    }
-    if (profitCol) {
-      cards.push(buildCard('profit', 'Net Profit', totals.totalProfit, true, totals.priorProfit, totals.currentProfit));
-    }
+      const card = buildCard(kpiName, kpi.label, totalVal, kpi.format, priorVal, currentVal, currentCount, priorCount);
+      card.icon = kpi.icon || null;
+      card.color = kpi.color || null;
+      cards.push(card);
+    });
 
-    if (dateCol && periodBounds) {
-      let growthMetricLabel = 'Growth %';
-      let growthPct = 0;
-      let growthDirection = 'flat';
+    // 3. Process distinct KPIs and push to cards
+    for (const { kpi } of distinctKpis) {
+      const kpiName = kpi.kpi;
+      const col = kpi.column;
 
-      if (revCol) {
-        growthMetricLabel = 'Revenue Growth %';
-        const prior = totals.priorRevenue;
-        const current = totals.currentRevenue;
-        
-        if (totals.currentRowCount === 0) {
-          growthPct = 0;
-          growthDirection = 'flat';
-        } else {
-          growthPct = prior === 0 ? (current > 0 ? 100 : 0) : ((current - prior) / Math.abs(prior)) * 100;
-          growthDirection = current - prior > 0 ? 'up' : current - prior < 0 ? 'down' : 'flat';
-        }
-      } else {
-        growthMetricLabel = 'Sales Growth %';
-        const prior = totals.priorSales;
-        const current = totals.currentSales;
-        
-        if (totals.currentRowCount === 0) {
-          growthPct = 0;
-          growthDirection = 'flat';
-        } else {
-          growthPct = prior === 0 ? (current > 0 ? 100 : 0) : ((current - prior) / Math.abs(prior)) * 100;
-          growthDirection = current - prior > 0 ? 'up' : current - prior < 0 ? 'down' : 'flat';
-        }
+      const totalResult = await DataRow.aggregate([
+        { $match: baseMatchNoDate },
+        { $group: { _id: `$data.${col}` } },
+        { $count: "total" }
+      ]);
+      const totalVal = totalResult[0]?.total || 0;
+
+      let priorVal = 0;
+      let currentVal = 0;
+      let currentCount = 0;
+      let priorCount = 0;
+
+      if (dateCol && periodBounds) {
+        const { currentStart, priorStart, priorEnd } = periodBounds;
+
+        const priorResult = await DataRow.aggregate([
+          { $match: { ...baseMatchNoDate, [`data.${dateCol}`]: { $gte: priorStart, $lt: priorEnd } } },
+          { $group: { _id: `$data.${col}` } },
+          { $count: "total" }
+        ]);
+        priorVal = priorResult[0]?.total || 0;
+        priorCount = priorVal;
+
+        const currentResult = await DataRow.aggregate([
+          { $match: { ...baseMatchNoDate, [`data.${dateCol}`]: { $gte: currentStart } } },
+          { $group: { _id: `$data.${col}` } },
+          { $count: "total" }
+        ]);
+        currentVal = currentResult[0]?.total || 0;
+        currentCount = currentVal;
       }
 
-      cards.push({
-        kpi: 'growth',
-        label: growthMetricLabel,
-        value: growthPct,
-        formattedValue: `${growthPct.toFixed(1)}%`,
-        deltaPct: null,
-        deltaDirection: growthDirection,
-        period: totals.currentRowCount === 0 ? 'No data for this period' : 'vs prior period'
-      });
+      const card = buildCard(kpiName, kpi.label, totalVal, kpi.format, priorVal, currentVal, currentCount, priorCount);
+      card.icon = kpi.icon || null;
+      card.color = kpi.color || null;
+      cards.push(card);
+    }
+
+    // 4. Period growth rate calculation (optional standard card if date column exists)
+    if (dateCol && periodBounds) {
+      const revenueKpi = numericKpis.find(m => m.kpi === 'revenue');
+      const salesKpi = numericKpis.find(m => m.kpi === 'sales');
+      const targetKpi = revenueKpi || salesKpi || numericKpis[0];
+
+      if (targetKpi) {
+        const kpiName = targetKpi.kpi;
+        const pVal = totals[`prior_${kpiName}`] || 0;
+        const cVal = totals[`current_${kpiName}`] || 0;
+        const pCount = totals[`priorCount_${kpiName}`] || 0;
+        const cCount = totals[`currentCount_${kpiName}`] || 0;
+
+        const comp = this.computeComparison({
+          currentVal: cVal,
+          priorVal: pVal,
+          currentCount: cCount,
+          priorCount: pCount,
+          hasDateCol: true,
+          hasPeriodBounds: true
+        });
+
+        const growthValue = comp.deltaPct !== null ? comp.deltaPct : 0.0;
+        const growthFormatted = comp.period === 'No data for this period' ? '—' : `${growthValue.toFixed(1)}%`;
+        const growthMetricLabel = targetKpi.kpi === 'revenue' ? 'Revenue Growth %' : `${targetKpi.label} Growth %`;
+
+        cards.push({
+          kpi: 'growth',
+          label: growthMetricLabel,
+          value: growthValue,
+          formattedValue: growthFormatted,
+          deltaPct: null,
+          deltaDirection: comp.deltaDirection,
+          period: comp.period
+        });
+      }
     }
 
     return cards;
@@ -367,12 +481,29 @@ class AnalyticsService {
 
     for (let i = 0; i < suggestions.length; i++) {
       const sugg = suggestions[i];
-      const { chartType, xField, yField, aggregation } = sugg;
+      let { chartType, xField, yField, aggregation } = sugg;
+
+      // Replace AVG of quantity by order_id with Average quantity per customer (group by customer_id)
+      let customTitle = null;
+      if ((xField || '').toLowerCase() === 'order_id' && (yField || '').toLowerCase() === 'quantity' && (aggregation || '').toLowerCase() === 'avg') {
+        const custCol = dataSource.schema.find(c => /customer_id|customer|cust/i.test(c.column));
+        if (custCol) {
+          xField = custCol.column;
+          customTitle = 'Average quantity per customer';
+        }
+      }
 
       const baseMatch = await buildMatchStage(dataSource, mappedCols, filters);
       const xCol = dataSource.schema.find(c => c.column === xField);
       const yCol = yField && yField !== '_count' ? dataSource.schema.find(c => c.column === yField) : null;
-      const isDate = xCol && xCol.type === 'date';
+      const isDate = Boolean(
+        xCol && (
+          xCol.type === 'date' ||
+          xCol.semanticRole === 'temporal_dimension' ||
+          xCol.isTemporal ||
+          /date|time|day|month|year|timestamp|created_at|updated_at|period/i.test(xField)
+        )
+      );
       const isScatter = yCol && aggregation === 'none';
 
       let pipeline = [];
@@ -387,6 +518,47 @@ class AnalyticsService {
           }
         });
         pipeline.push({ $limit: 100 });
+      } else if (isDate) {
+        // Temporal charts: use granularity-aware aggregation instead of naive exact-date grouping
+        try {
+          const bounds = await DataRow.aggregate([
+            { $match: baseMatch },
+            { $match: { [`data.${xField}`]: { $ne: null, $exists: true } } },
+            {
+              $project: {
+                dateVal: {
+                  $convert: {
+                    input: `$data.${xField}`,
+                    to: 'date',
+                    onError: null,
+                    onNull: null
+                  }
+                }
+              }
+            },
+            { $match: { dateVal: { $ne: null } } },
+            { $group: { _id: null, min: { $min: '$dateVal' }, max: { $max: '$dateVal' } } }
+          ]);
+          const minDate = bounds[0]?.min ? new Date(bounds[0].min) : null;
+          const maxDate = bounds[0]?.max ? new Date(bounds[0].max) : null;
+          const metricField = (yField && yField !== '_count') ? yField : null;
+          const temporal = buildTemporalPipeline(xField, metricField, aggregation, minDate, maxDate);
+          // Replace the pipeline (after the $match) with the temporal stages
+          pipeline = [
+            { $match: baseMatch },
+            // Filter out null date values before temporal grouping
+            { $match: { [`data.${xField}`]: { $ne: null, $exists: true } } },
+            ...temporal.pipeline.filter(s => !s.$match) // temporal pipeline already has its own internal $match
+          ];
+        } catch (temporalErr) {
+          console.error(`[AnalyticsService] Temporal pipeline error for "${xField}": ${temporalErr.message}. Falling back to categorical grouping.`);
+          // Fallback to basic grouping
+          let groupStage = { _id: `$data.${xField}` };
+          groupStage.yVal = aggregation === 'sum' ? { $sum: `$data.${yField}` } : { $sum: 1 };
+          pipeline.push({ $group: groupStage });
+          pipeline.push({ $project: { _id: 0, x: '$_id', y: '$yVal' } });
+          pipeline.push({ $sort: { x: 1 } });
+        }
       } else {
         let groupStage = { _id: `$data.${xField}` };
 
@@ -396,6 +568,13 @@ class AnalyticsService {
           groupStage.yVal = { $sum: `$data.${yField}` };
         } else if (aggregation === 'avg') {
           groupStage.yVal = { $avg: `$data.${yField}` };
+        } else if (aggregation === 'min') {
+          groupStage.yVal = { $min: `$data.${yField}` };
+        } else if (aggregation === 'max') {
+          groupStage.yVal = { $max: `$data.${yField}` };
+        } else {
+          // Default to count for any unhandled aggregation
+          groupStage.yVal = { $sum: 1 };
         }
 
         pipeline.push({ $group: groupStage });
@@ -410,17 +589,33 @@ class AnalyticsService {
 
       let results = await DataRow.aggregate(pipeline);
 
+      // Clean/format date values if XAxis is date (backward compat for non-temporal pipeline paths)
+      if (isDate) {
+        results = results.map(r => {
+          let dateStr = r.x;
+          if (r.x instanceof Date) {
+            dateStr = r.x.toISOString().split('T')[0];
+          } else if (r.x && typeof r.x === 'string' && !isNaN(Date.parse(r.x))) {
+            // Already a formatted string from $dateToString — keep as-is
+            dateStr = r.x;
+          } else if (r.x && typeof r.x === 'object') {
+            dateStr = JSON.stringify(r.x);
+          }
+          return { ...r, x: dateStr };
+        });
+      }
+
+      // Only apply downsampling with 'Other' for non-temporal categorical charts
+      // Temporal charts are already aggregated into correct buckets by buildTemporalPipeline
       const maxPoints = 100;
-      if (results.length > maxPoints) {
-        if (isDate) {
-          const interval = Math.ceil(results.length / maxPoints);
-          results = results.filter((_, index) => index % interval === 0).slice(0, maxPoints);
-        } else {
-          const topSlice = results.slice(0, maxPoints - 1);
-          const otherSlice = results.slice(maxPoints - 1);
-          const otherSum = otherSlice.reduce((acc, row) => acc + (row.y || 0), 0);
-          results = [...topSlice, { x: 'Other', y: otherSum }];
-        }
+      if (!isDate && results.length > maxPoints) {
+        const topSlice = results.slice(0, maxPoints - 1);
+        const otherSlice = results.slice(maxPoints - 1);
+        const otherSum = otherSlice.reduce((acc, row) => acc + (row.y || 0), 0);
+        results = [...topSlice, { x: 'Other', y: otherSum }];
+      } else if (isDate && results.length > maxPoints) {
+        const step = Math.ceil(results.length / maxPoints);
+        results = results.filter((_, idx) => idx % step === 0).slice(0, maxPoints);
       }
 
       // Run linear forecast on line chart (time series) using AnalyticsEngine
@@ -432,7 +627,8 @@ class AnalyticsService {
       charts.push({
         id: `widget-${i + 2}`,
         type: chartType === 'kpi' ? 'kpi-card' : `${chartType}-chart`,
-        title: `${yField === '_count' ? 'Count' : aggregation.toUpperCase() + ' of ' + yField} by ${xField}`,
+        // Use title from semantic pipeline if provided, else generate from field names
+        title: customTitle || sugg.title || this.generateChartTitle(xField, yField, aggregation),
         config: { xField, yField, aggregation },
         layout: { x: (i % 2) * 6, y: Math.floor(i / 2) * 4, w: 6, h: 4 },
         resolvedData: results,
@@ -481,47 +677,54 @@ class AnalyticsService {
     const classification = await DatasetClassifierService.classifyDataset(dataSource.fileName, dataSource.schema);
     const { domain, domainLabel } = classification;
 
-    // Step 2: AI-powered KPI column mapping (Gemini suggests which columns = which KPIs)
+    console.log(`[AnalyticsService] Domain detected: "${domain}" (confidence: ${classification.confidence}) for "${dataSource.fileName}"`);
+
+    // Step 2: Semantic pipeline — KPI column mapping with aggregation validation
+    // The pipeline runs semantic classification + domain profiles + AI enrichment + validation
+    // Chart recommendation also uses the same pipeline (cached internally)
     const mappedColsList = await KPIRecommendationService.recommendKPIs(dataSource.schema, domain);
+    const activeKPIs = this.getActiveKPIList(dataSource, mappedColsList);
+
+    console.log(`[AnalyticsService] KPI mappings (${activeKPIs.length}):`, activeKPIs.map(k => `${k.label}(${k.column}, ${k.aggregation})`).join(', '));
+
     const mappedCols = {};
     dataSource.schema.forEach(c => {
       mappedCols[c.column] = c.column;
     });
-    mappedColsList.forEach(m => {
+    activeKPIs.forEach(m => {
       mappedCols[m.kpi] = m.column;
     });
-    // Apply any manual overrides from the Upload tab KPI mapping UI
-    if (dataSource.kpiMapping) {
-      Object.keys(dataSource.kpiMapping).forEach(k => {
-        if (dataSource.kpiMapping[k]) mappedCols[k] = dataSource.kpiMapping[k];
-      });
-    }
 
     // Step 3: Calculate KPIs from MongoDB (aggregation queries)
-    const kpis = await this.calculateKPIs(dataSource, mappedCols, filters);
+    // Aggregation is now determined by semantic pipeline, not heuristic
+    const rawKpis = await this.calculateKPIs(dataSource, activeKPIs, filters);
 
-    // Enrich KPI cards with Gemini-suggested metadata (icon, color, label)
-    // mappedColsList contains the full recommendation including icon/color from Gemini
-    const kpiMetaMap = {};
-    mappedColsList.forEach(m => { kpiMetaMap[m.kpi] = m; });
-    const enrichedKpis = kpis.map(kpi => {
-      const meta = kpiMetaMap[kpi.kpi];
-      return {
-        ...kpi,
-        label: meta?.label || kpi.label,
-        icon: meta?.icon || null,
-        color: meta?.color || null
-      };
+    // Post-execution KPI result validation
+    const kpis = rawKpis.filter(kpi => {
+      const v = validateKPIResult(kpi);
+      if (!v.valid) console.warn(`[AnalyticsService] KPI result rejected — "${kpi.kpi || kpi.label}": ${v.reason}`);
+      return v.valid;
     });
 
-    // Step 4: AI-powered chart suggestions (Gemini picks chart types, fields, aggregations)
-    const charts = await this.generateCharts(dataSource, mappedCols, filters, domain);
+    console.log(`[AnalyticsService] KPI cards computed: ${rawKpis.length}, valid: ${kpis.length}`);
 
+    // Step 4: Semantic chart recommendations with aggregation validation gate
+    const rawCharts = await this.generateCharts(dataSource, mappedCols, filters, domain);
+
+    // Post-execution chart result validation
+    const charts = rawCharts.filter(chart => {
+      const v = validateChartResult(chart);
+      if (!v.valid) console.warn(`[AnalyticsService] Chart result rejected — "${chart.title}": ${v.reason}`);
+      if (v.warning) console.warn(`[AnalyticsService] Chart result warning — "${chart.title}": ${v.warning}`);
+      return v.valid;
+    });
+
+    console.log(`[AnalyticsService] Charts computed: ${rawCharts.length}, valid: ${charts.length}`);
     // Step 5: Rule Engine evaluation
     const ruleAlerts = await RuleEngineService.evaluateRules(dataSource._id);
 
-    // Step 6: AI-powered insights (Gemini generates domain-aware business insights from KPI data)
-    const insights = await InsightGeneratorService.generateInsights(enrichedKpis, ruleAlerts, domain, domainLabel || domain);
+    // Step 6: AI-powered insights
+    const insights = await InsightGeneratorService.generateInsights(kpis, ruleAlerts, domain, domainLabel || domain);
 
     // Step 7: Filters and reports
     const filterOptions = await this.generateFilters(dataSource);
@@ -545,7 +748,7 @@ class AnalyticsService {
       domain,
       domainLabel: domainLabel || domain,
       confidence: classification.confidence,
-      kpis: enrichedKpis,
+      kpis,
       charts,
       insights,
       filters: filterOptions,

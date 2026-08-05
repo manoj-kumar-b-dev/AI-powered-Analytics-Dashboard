@@ -22,6 +22,12 @@ export const useDashboard = () => {
     invalidateAndReload();
   }, [invalidateAndReload, triggerToast]);
 
+  const getStorageKey = useCallback(() => {
+    return dashboard?.dataSourceId 
+      ? `dashboard_widgets_layout_${dashboard.dataSourceId}`
+      : "dashboard_widgets_layout";
+  }, [dashboard?.dataSourceId]);
+
   // Sync widgets when dashboard data loads
   useEffect(() => {
     if (!dashboard) {
@@ -46,22 +52,44 @@ export const useDashboard = () => {
         }
       },
       config: { kpiType: kpi.kpi },
-      layout: { x: (idx % 4) * 3, y: 0, w: 3, h: 2 }
-    }));
-
-    const chartWidgets = (dashboard.charts || []).map((chart, idx) => ({
-      ...chart,
-      layout: chart.layout || {
-        x: (idx % 2) * 6,
-        y: 2 + Math.floor(idx / 2) * 4,
-        w: 6,
-        h: 4
+      layout: { 
+        x: (idx % 4) * 3, 
+        y: Math.floor(idx / 4) * 2, 
+        w: 3, 
+        h: 2 
       }
     }));
 
+    const kpiHeight = Math.ceil(kpiWidgets.length / 4) * 2;
+
+    const chartWidgets = (dashboard.charts || []).map((chart, idx) => {
+      const defaultLayout = {
+        x: (idx % 2) * 6,
+        y: kpiHeight + Math.floor(idx / 2) * 4,
+        w: 6,
+        h: 4
+      };
+
+      if (!chart.layout) {
+        return { ...chart, layout: defaultLayout };
+      }
+
+      // Ensure chart layouts are placed after KPIs
+      const rawLayout = chart.layout;
+      const x = rawLayout.x ?? (idx % 2) * 6;
+      const y = rawLayout.y >= kpiHeight ? rawLayout.y : kpiHeight + (rawLayout.y ?? 0);
+      const w = rawLayout.w ?? 6;
+      const h = rawLayout.h ?? 4;
+
+      return {
+        ...chart,
+        layout: { x, y, w, h }
+      };
+    });
+
     const combined = [...kpiWidgets, ...chartWidgets];
 
-    const saved = localStorage.getItem("dashboard_widgets_layout");
+    const saved = localStorage.getItem(getStorageKey());
     if (saved) {
       const savedLayouts = JSON.parse(saved);
       const merged = combined.map(w => {
@@ -75,7 +103,7 @@ export const useDashboard = () => {
     } else {
       setWidgets(combined);
     }
-  }, [dashboard]);
+  }, [dashboard, getStorageKey]);
 
   // Sidebar resize auto collapse
   useEffect(() => {
@@ -135,25 +163,25 @@ export const useDashboard = () => {
         return w;
       });
       if (isEditing) {
-        localStorage.setItem("dashboard_widgets_layout", JSON.stringify(updated));
+        localStorage.setItem(getStorageKey(), JSON.stringify(updated));
       }
       return updated;
     });
-  }, [isEditing]);
+  }, [isEditing, getStorageKey]);
 
   const handleSaveLayout = useCallback(() => {
-    localStorage.setItem("dashboard_widgets_layout", JSON.stringify(widgets));
+    localStorage.setItem(getStorageKey(), JSON.stringify(widgets));
     setIsEditing(false);
     alert("Dashboard layout settings saved successfully.");
-  }, [widgets]);
+  }, [widgets, getStorageKey]);
 
   const handleResetLayout = useCallback(() => {
     if (window.confirm("Restore layout to default arrangement?")) {
-      localStorage.removeItem("dashboard_widgets_layout");
+      localStorage.removeItem(getStorageKey());
       invalidateAndReload();
       setIsEditing(false);
     }
-  }, [invalidateAndReload]);
+  }, [invalidateAndReload, getStorageKey]);
 
   return {
     showToast,

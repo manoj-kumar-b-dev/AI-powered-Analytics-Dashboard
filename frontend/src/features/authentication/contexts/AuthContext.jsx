@@ -122,22 +122,34 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
+      let res;
+      try {
+        res = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password }),
+        });
+      } catch (networkErr) {
+        throw new Error('Unable to connect to server. Please check your connection or backend status.');
+      }
 
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error(`Server returned invalid response (Status ${res.status}). Please try again later.`);
+      }
+
       if (!res.ok) {
-        throw new Error(data.error?.message || 'Login failed');
+        const msg = data.error?.message || data.message || (res.status === 401 ? 'Invalid email or password' : 'Login failed');
+        throw new Error(msg);
       }
 
       setToken(data.accessToken);
       localStorage.setItem('token', data.accessToken);
       await fetchProfile(data.accessToken);
-      return true;
+      return { success: true, user: data.user };
     } catch (err) {
       setLoading(false);
       throw err;
@@ -147,22 +159,34 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name, email, password }),
-      });
+      let res;
+      try {
+        res = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name, email, password }),
+        });
+      } catch (networkErr) {
+        throw new Error('Unable to connect to server. Please check your connection or backend status.');
+      }
 
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error(`Server returned invalid response (Status ${res.status}). Please try again later.`);
+      }
+
       if (!res.ok) {
-        throw new Error(data.error?.message || 'Registration failed');
+        const msg = data.error?.message || data.message || (res.status === 400 ? 'Invalid registration information' : 'Registration failed');
+        throw new Error(msg);
       }
 
       setToken(data.accessToken);
       localStorage.setItem('token', data.accessToken);
       await fetchProfile(data.accessToken);
-      return true;
+      return { success: true, user: data.user };
     } catch (err) {
       setLoading(false);
       throw err;
@@ -204,6 +228,50 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data.error?.message || data.message || 'Failed to process request';
+        throw new Error(msg);
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Forgot Password API Error:', err);
+      throw err;
+    }
+  };
+
+  const resetPassword = async (token, newPassword) => {
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data.error?.message || data.message || 'Failed to reset password';
+        throw new Error(msg);
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Reset Password API Error:', err);
+      throw err;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -216,6 +284,8 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         switchOrg,
+        forgotPassword,
+        resetPassword,
         apiRequest,
       }}
     >

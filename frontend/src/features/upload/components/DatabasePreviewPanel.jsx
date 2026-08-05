@@ -3,7 +3,7 @@ import {
   Database,
   AlertTriangle,
   Save,
-  DollarSign,
+  IndianRupee,
   TrendingUp,
   Users,
   Coins,
@@ -17,7 +17,7 @@ import { AutoVisualizationContainer } from "../../analytics/components/AutoVisua
 function resolveKpiIcon(kpi) {
   switch (kpi) {
     case "revenue":
-      return DollarSign;
+      return IndianRupee;
     case "sales":
       return TrendingUp;
     case "customers":
@@ -46,7 +46,7 @@ function KpiCard({ card }) {
             {label}
           </span>
           <h3 className="text-xl font-extrabold text-white mt-1.5 font-display">
-            {formattedValue}
+            {typeof formattedValue === 'string' ? formattedValue.replace(/\$/g, '₹') : formattedValue}
           </h3>
         </div>
         <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[#c084fc] flex items-center justify-center shrink-0">

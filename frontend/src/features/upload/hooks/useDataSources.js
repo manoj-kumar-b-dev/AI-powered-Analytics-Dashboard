@@ -45,6 +45,14 @@ export const useDataSources = ({ onDeleteSuccess, onUploadSuccess } = {}) => {
   };
 
   const selectDataSourceForPreview = async (dsId) => {
+    if (!dsId) {
+      setSelectedDSId(null);
+      setDsPreview(null);
+      setKpiData([]);
+      setSuggestedCharts([]);
+      setMappingInput({});
+      return;
+    }
     setSelectedDSId(dsId);
     try {
       const res = await apiRequest(`/datasources/${dsId}/preview`);

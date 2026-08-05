@@ -1,6 +1,7 @@
 import React from 'react';
 import KpiCard from './KpiCard';
 import ChartWidget from './ChartWidget';
+import InsightGenerator from '../insights/components/InsightGenerator';
 
 /**
  * Main dashboard layout renderer. Renders generic KPI cards and chart widgets
@@ -60,7 +61,9 @@ export default function DashboardRenderer({ config, data = [], preferences }) {
   }
 
   return (
-    <div className="grid grid-cols-12 auto-rows-[minmax(120px,_auto)] gap-6 w-full min-w-0 max-w-full overflow-x-hidden">
+    <>
+      <InsightGenerator config={config} data={datasetData} />
+      <div className="grid grid-cols-12 auto-rows-[minmax(120px,_auto)] gap-6 w-full min-w-0 max-w-full overflow-x-hidden">
       {processedLayout.map(widget => {
         const sizeOverride = widgetSizes[widget.widgetId];
         const w = sizeOverride?.w || widget.gridPosition.w;
@@ -108,5 +111,6 @@ export default function DashboardRenderer({ config, data = [], preferences }) {
         return null;
       })}
     </div>
+    </>
   );
 }

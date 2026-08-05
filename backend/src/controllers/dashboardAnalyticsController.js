@@ -21,7 +21,20 @@ const getActiveDataSource = async (orgId) => {
 
 exports.getUnifiedDashboard = async (req, res) => {
   try {
-    const dataSource = await getActiveDataSource(req.user.orgId);
+    const { datasetId, dataSourceId } = req.query;
+    let dataSource;
+    const targetId = datasetId || dataSourceId;
+    if (targetId) {
+      dataSource = await DataSource.findOne({ _id: targetId, orgId: req.user.orgId });
+      if (dataSource && !dataSource.isActive) {
+        await DataSource.updateMany({ orgId: req.user.orgId, _id: { $ne: dataSource._id } }, { isActive: false });
+        dataSource.isActive = true;
+        await dataSource.save();
+      }
+    }
+    if (!dataSource) {
+      dataSource = await getActiveDataSource(req.user.orgId);
+    }
     if (!dataSource) {
       return res.status(200).json({
         kpis: [],

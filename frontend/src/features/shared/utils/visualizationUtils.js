@@ -5,8 +5,24 @@ const isDateString = (val) => {
   if (val === null || val === undefined || val === '') return false;
   const str = val.toString().trim();
   if (/^\d{1,4}$/.test(str)) return false; // exclude simple years or short numbers
+
+  // acceptable patterns:
+  // A. Number separated by slash/dash/dot (e.g. 10/12/2025, 2025-06-15)
+  const separatorPattern = /\d{1,4}[\/\-\.]\d{1,2}/;
+  // B. Simple ISO-like date timestamp (e.g. 2025-06-15T00:00)
+  const isoPattern = /^\d{4}-\d{2}-\d{2}/;
+  // C. Month name (e.g. Jan 2025)
+  const monthNames = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
+
+  const matchesPattern = separatorPattern.test(str) || isoPattern.test(str) || monthNames.test(str);
+  if (!matchesPattern) return false;
+
   const time = Date.parse(str);
-  return !isNaN(time);
+  if (isNaN(time)) return false;
+  
+  const d = new Date(time);
+  const y = d.getFullYear();
+  return y >= 2000 && y <= 2100;
 };
 
 /**
@@ -494,7 +510,7 @@ export const aggregateData = (rows, xField, yField, aggregation, groupBy, filter
 
   // Downsampling logic for safety
   if (aggregatedList.length > 150) {
-    const isTimeline = xField.toLowerCase().includes('date') || xField.toLowerCase().includes('time') || xField.toLowerCase().includes('month') || xField.toLowerCase().includes('year');
+    const isTimeline = /date|time|day|month|year|week|quarter|period|timestamp|created_at|updated_at|order_date/i.test(xField);
     if (isTimeline) {
       const step = Math.ceil(aggregatedList.length / 150);
       return aggregatedList.filter((_, idx) => idx % step === 0).slice(0, 150);

@@ -112,7 +112,11 @@ export const useAutoVisualization = ({ initialRows = [], initialHeaders = [], ds
 
   // 4. Generate NLP Insights dynamically
   const insights = useMemo(() => {
-    return generateInsights(aggregatedData, rawRows, xField, yField, detectedTypes);
+    const res = generateInsights(aggregatedData, rawRows, xField, yField, detectedTypes);
+    if (res) {
+      console.log('[AutoVisualization] Generated Chart Insights Result:', res);
+    }
+    return res;
   }, [aggregatedData, rawRows, xField, yField, detectedTypes]);
 
   // 5. Restore recommendation overrides

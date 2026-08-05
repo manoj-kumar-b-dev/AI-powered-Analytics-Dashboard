@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Sliders, Filter, ArrowUpDown, RefreshCw, X } from 'lucide-react';
+import { Sliders, Filter, ArrowUpDown, RefreshCw, X, AlertTriangle } from 'lucide-react';
 
 export const ChartControls = ({
   headers,
@@ -24,6 +24,16 @@ export const ChartControls = ({
   recommendation
 }) => {
   
+  const showWarning = useMemo(() => {
+    if (!rawRows || rawRows.length === 0) return false;
+    const checkField = (field) => {
+      if (!field) return false;
+      const uniqueVals = new Set(rawRows.map(r => r[field]).filter(v => v !== null && v !== undefined && v !== ''));
+      return rawRows.length > 5 && (uniqueVals.size / rawRows.length) >= 0.9;
+    };
+    return checkField(xField) || checkField(groupBy);
+  }, [rawRows, xField, groupBy]);
+
   // Identify numeric vs string/category headers
   const numericHeaders = useMemo(() => {
     return headers.filter(h => ['Numeric', 'Integer', 'Float', 'Currency', 'Percentage'].includes(detectedTypes[h]));
@@ -197,6 +207,15 @@ export const ChartControls = ({
           </div>
         </div>
       </div>
+
+      {showWarning && (
+        <div className="flex gap-2.5 p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs items-center select-none">
+          <AlertTriangle className="h-4.5 w-4.5 shrink-0 animate-pulse" />
+          <span className="font-semibold leading-relaxed">
+            This grouping may not produce a meaningful chart
+          </span>
+        </div>
+      )}
 
       {/* Dynamic filters block */}
       {Object.keys(filterOptions).length > 0 && (

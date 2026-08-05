@@ -18,6 +18,12 @@ router.post('/refresh', authController.refresh);
 // POST /auth/logout
 router.post('/logout', authController.logout);
 
+// POST /auth/forgot-password
+router.post('/forgot-password', authController.forgotPassword);
+
+// POST /auth/reset-password
+router.post('/reset-password', authController.resetPassword);
+
 // GET /auth/google - Initiate Google Authentication
 router.get('/google', (req, res, next) => {
   const state = req.query.orgId ? JSON.stringify({ orgId: req.query.orgId }) : undefined;
