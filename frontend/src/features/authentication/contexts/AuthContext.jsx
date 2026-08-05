@@ -120,7 +120,6 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    setLoading(true);
     try {
       let res;
       try {
@@ -151,13 +150,11 @@ export const AuthProvider = ({ children }) => {
       await fetchProfile(data.accessToken);
       return { success: true, user: data.user };
     } catch (err) {
-      setLoading(false);
       throw err;
     }
   };
 
   const register = async (name, email, password) => {
-    setLoading(true);
     try {
       let res;
       try {
@@ -188,7 +185,6 @@ export const AuthProvider = ({ children }) => {
       await fetchProfile(data.accessToken);
       return { success: true, user: data.user };
     } catch (err) {
-      setLoading(false);
       throw err;
     }
   };

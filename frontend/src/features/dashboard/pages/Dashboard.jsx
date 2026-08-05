@@ -11,6 +11,7 @@ import { useDashboardStore } from "../store/dashboardStore";
 import { useDashboard } from "../hooks/useDashboard";
 import { useFilters } from "../hooks/useFilters";
 import { ReportsTab } from "../components/ReportsTab";
+import { AskAiChatPage } from "../../ask-ai/components/AskAiChatPage";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, ArrowRight } from "lucide-react";
 
@@ -19,6 +20,7 @@ export default function Dashboard() {
 
   const {
     showToast,
+    toastConfig,
     activeTab,
     setActiveTab,
     isSidebarCollapsed,
@@ -288,6 +290,10 @@ export default function Dashboard() {
                 data={currentDashboard?.data || currentDashboard?.sampleRows || []} 
               />
             </div>
+          ) : activeTab === "AI Chat" ? (
+            <div className="w-full text-left">
+              <AskAiChatPage />
+            </div>
           ) : activeTab === "Reports" ? (
             <div className="w-full text-left">
               <ReportsTab dashboard={currentDashboard} recentUploadsList={recentUploadsList} />
@@ -326,8 +332,8 @@ export default function Dashboard() {
               <CheckCircle className="h-4.5 w-4.5 text-emerald-400 shrink-0" />
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-xs font-bold text-white">Upload Complete</span>
-              <span className="text-[10px] text-gray-400 mt-0.5 font-medium">Dashboard updated successfully.</span>
+              <span className="text-xs font-bold text-white">{toastConfig?.title || "Notification"}</span>
+              <span className="text-[10px] text-gray-400 mt-0.5 font-medium">{toastConfig?.message || "Operation completed."}</span>
             </div>
           </motion.div>
         )}

@@ -13,6 +13,7 @@ const dataSourceRouter = require('./routes/dataSource');
 const analyticsRouter = require('./routes/analytics');
 const dashboardAnalyticsRouter = require('./routes/dashboardAnalytics');
 const insightsRouter = require('./routes/insights');
+const datasetRouter = require('./routes/datasetRoutes');
 
 const app = express();
 
@@ -70,6 +71,8 @@ app.use('/datasources', dataSourceRouter);
 app.use('/analytics', analyticsRouter);
 app.use('/dashboard', dashboardAnalyticsRouter);
 app.use('/insights', insightsRouter);
+app.use('/api/datasets', datasetRouter);
+app.use('/datasets', datasetRouter);
 
 // Root and favicon routes to prevent 404s in browser direct access
 app.get('/', (req, res) => res.status(200).json({ message: 'SaaS Analytics API Backend Running' }));

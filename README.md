@@ -122,3 +122,33 @@ Tenancy boundaries are enforced using Node's `AsyncLocalStorage` and a global Mo
 - `GET /dashboards/:id` — Resolves and returns dashboard schema + live widget aggregations.
 - `PUT /dashboards/:id` — Update grid widget dimensions or configs.
 - `DELETE /dashboards/:id` — Delete board.
+
+### Ask AI Data Analytics Route (`/api/datasets`)
+- `POST /api/datasets` — Authenticated CSV/Excel upload (`.csv`, `.xlsx`, `.xls`). Parses file server-side, infers column types (`string`, `number`, `date`, `boolean`), stores metadata and rows in MongoDB.
+- `GET /api/datasets` — List user's uploaded datasets.
+- `GET /api/datasets/:datasetId/profile` — Fetch dataset metadata, row count, column schema, and up to 10 safe sample rows.
+- `POST /api/datasets/:datasetId/ask` — Ask natural-language questions (e.g. *"Which region performs best?"*). Employs AI function calling / structured output choosing ONLY from approved analysis operations (`group_by`, `compare_periods`, `filter_and_aggregate`, `top_n`), validates and executes operations safely server-side, and returns plain-English answers, insights, methodology, and chart visualization data.
+
+---
+
+## Ask AI About Your Data Architecture
+
+1. **Server-Side File Parsing & Column Type Inference**:
+   - Accepts `.csv`, `.xlsx`, and `.xls` files up to 15MB.
+   - Parses spreadsheets server-side (`papaparse` for CSV, `xlsx` for Excel) and infers data types (`string`, `number`, `date`, `boolean`).
+   - Persists dataset metadata and rows scoped to the authenticated user ID.
+
+2. **AI Function Calling & Strict Execution Boundary**:
+   - Never sends raw dataset content to the LLM model. Constructs a small context containing schema, row count, column summaries, and sample rows.
+   - Constrains LLM to 4 approved analytical actions: `group_by`, `compare_periods`, `filter_and_aggregate`, `top_n`.
+   - Validates all AI-selected parameters on the server before execution. Arbitrary JS, shell commands, or raw MongoDB operators are strictly disallowed.
+
+3. **Deterministic Fallback Analytical Engine**:
+   - In case LLM API keys are absent or rate-limited, a rule-based statistical intent parser interprets natural language questions, maps columns, executes approved server-side aggregations, and generates formatted responses seamlessly.
+
+4. **Frontend AI Chat & Interactive Visualizations**:
+   - Drag & drop spreadsheet upload interface.
+   - Dataset profile preview table and detected column type tags.
+   - Dynamic prompt suggestions based on dataset schema.
+   - Rich answer cards with plain-English summaries, insight bullets, methodology explanations, and responsive Recharts (`bar`, `line`, `pie`).
+

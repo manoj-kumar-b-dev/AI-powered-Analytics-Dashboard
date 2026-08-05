@@ -81,7 +81,13 @@ export const AuthScreen = () => {
         errors.email = 'Please enter a valid email address.';
       }
       setFieldErrors(errors);
-      return Object.keys(errors).length === 0;
+      const hasErrors = Object.keys(errors).length > 0;
+      if (hasErrors) {
+        setServerError('Please fix the validation errors below before submitting.');
+      } else {
+        setServerError('');
+      }
+      return !hasErrors;
     }
 
     if (authTab === 'reset-password') {
@@ -97,7 +103,13 @@ export const AuthScreen = () => {
         errors.confirmPassword = 'Passwords do not match.';
       }
       setFieldErrors(errors);
-      return Object.keys(errors).length === 0;
+      const hasErrors = Object.keys(errors).length > 0;
+      if (hasErrors) {
+        setServerError('Please fix the validation errors below before submitting.');
+      } else {
+        setServerError('');
+      }
+      return !hasErrors;
     }
 
     if (!authEmail.trim()) {
@@ -113,7 +125,13 @@ export const AuthScreen = () => {
     }
 
     setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    const hasErrors = Object.keys(errors).length > 0;
+    if (hasErrors) {
+      setServerError('Please fix the validation errors below before submitting.');
+    } else {
+      setServerError('');
+    }
+    return !hasErrors;
   };
 
   const handleAuthSubmit = async (e) => {
@@ -128,9 +146,19 @@ export const AuthScreen = () => {
     setIsSubmitting(true);
     try {
       if (authTab === 'login') {
+        sessionStorage.setItem('authToast', JSON.stringify({
+          title: 'Welcome Back!',
+          message: 'Signed in successfully to your analytics workspace.',
+          type: 'success'
+        }));
         await login(authEmail.trim(), authPassword);
         setServerSuccess('Sign in successful! Loading workspace...');
       } else if (authTab === 'signup') {
+        sessionStorage.setItem('authToast', JSON.stringify({
+          title: 'Workspace Provisioned!',
+          message: 'Account & organization registered successfully.',
+          type: 'success'
+        }));
         await register(authName.trim(), authEmail.trim(), authPassword);
         setServerSuccess('Workspace & account created successfully! Redirecting...');
       } else if (authTab === 'forgot-password') {
@@ -146,7 +174,8 @@ export const AuthScreen = () => {
       }
     } catch (err) {
       console.error('Authentication Submit Error:', err);
-      setServerError(err.message || 'Operation failed. Please try again.');
+      sessionStorage.removeItem('authToast');
+      setServerError(err.message || 'Authentication failed. Please check your details and try again.');
     } finally {
       setIsSubmitting(false);
     }

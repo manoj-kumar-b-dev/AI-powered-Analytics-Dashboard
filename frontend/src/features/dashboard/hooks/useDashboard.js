@@ -4,6 +4,11 @@ import { useDashboardStore } from '../store/dashboardStore';
 export const useDashboard = () => {
   const { dashboard, invalidateAndReload } = useDashboardStore();
   const [showToast, setShowToast] = useState(false);
+  const [toastConfig, setToastConfig] = useState({
+    title: "Upload Complete",
+    message: "Dashboard updated successfully.",
+    type: "success"
+  });
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [widgets, setWidgets] = useState([]);
@@ -11,13 +16,29 @@ export const useDashboard = () => {
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState("Just now");
 
-  const triggerToast = useCallback(() => {
+  const triggerToast = useCallback((title = "Upload Complete", message = "Dashboard updated successfully.", type = "success") => {
+    setToastConfig({ title, message, type });
     setShowToast(true);
     setTimeout(() => setShowToast(false), 4500);
   }, []);
 
+  // Check for authToast in sessionStorage on mount (e.g. after login/register)
+  useEffect(() => {
+    const authToastRaw = sessionStorage.getItem('authToast');
+    if (authToastRaw) {
+      try {
+        const parsed = JSON.parse(authToastRaw);
+        triggerToast(parsed.title, parsed.message, parsed.type || 'success');
+      } catch (err) {
+        console.error('Failed to parse authToast:', err);
+      } finally {
+        sessionStorage.removeItem('authToast');
+      }
+    }
+  }, [triggerToast]);
+
   const handleUploadSuccess = useCallback((dsId) => {
-    triggerToast();
+    triggerToast("Upload Complete", "Dashboard updated successfully.", "success");
     setActiveTab("Dashboard");
     invalidateAndReload();
   }, [invalidateAndReload, triggerToast]);
@@ -186,6 +207,8 @@ export const useDashboard = () => {
   return {
     showToast,
     setShowToast,
+    toastConfig,
+    triggerToast,
     activeTab,
     setActiveTab,
     isSidebarCollapsed,

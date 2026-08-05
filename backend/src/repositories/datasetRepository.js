@@ -1,139 +1,72 @@
-const DataSource = require('../models/dataSource');
+const Dataset = require('../models/dataset');
+const DatasetRow = require('../models/datasetRow');
 
 /**
- * Updates the dataset (DataSource) document with its AI classification results.
- *
- * @param {string} datasetId - The ID of the DataSource document.
- * @param {Object} classificationResult - The classification data: { datasetType, confidence, reason }
- * @returns {Promise<Object>} The updated DataSource document.
+ * Creates a new dataset metadata entry.
  */
-const updateClassification = async (datasetId, classificationResult) => {
-  const { datasetType, confidence, reason } = classificationResult;
-  return DataSource.findByIdAndUpdate(
-    datasetId,
-    {
-      $set: {
-        datasetType,
-        confidence,
-        reason,
-        classifiedAt: new Date()
-      }
-    },
-    { new: true }
-  );
+const createDataset = async (ownerId, fileName, rowCount, columns) => {
+  const dataset = new Dataset({
+    ownerId,
+    fileName,
+    rowCount,
+    columns
+  });
+  return await dataset.save();
 };
 
 /**
- * Updates the dataset (DataSource) document with the final merged column roles.
- *
- * @param {string} datasetId - The ID of the DataSource document.
- * @param {Array<Object>} columnRoles - The array of column roles.
- * @returns {Promise<Object>} The updated DataSource document.
+ * Bulk inserts dataset rows associated with a dataset ID and owner ID.
  */
-const updateColumnRoles = async (datasetId, columnRoles) => {
-  return DataSource.findByIdAndUpdate(
+const insertDatasetRows = async (datasetId, ownerId, rows) => {
+  const documents = rows.map(r => ({
     datasetId,
-    {
-      $set: {
-        columnRoles
-      }
-    },
-    { new: true }
-  );
-};
+    ownerId,
+    data: r
+  }));
 
-/**
- * Updates the dataset (DataSource) document with the recommended KPIs.
- *
- * @param {string} datasetId - The ID of the DataSource document.
- * @param {Array<Object>} kpis - The array of KPI recommendations.
- * @returns {Promise<Object>} The updated DataSource document.
- */
-const updateKpis = async (datasetId, kpis) => {
-  return DataSource.findByIdAndUpdate(
-    datasetId,
-    {
-      $set: {
-        kpis
-      }
-    },
-    { new: true }
-  );
-};
-
-/**
- * Updates the dataset (DataSource) document with the recommended charts.
- *
- * @param {string} datasetId - The ID of the DataSource document.
- * @param {Array<Object>} charts - The array of chart recommendations.
- * @returns {Promise<Object>} The updated DataSource document.
- */
-const updateCharts = async (datasetId, charts) => {
-  return DataSource.findByIdAndUpdate(
-    datasetId,
-    {
-      $set: {
-        charts
-      }
-    },
-    { new: true }
-  );
-};
-
-/**
- * Saves the dashboard config to the dataset document.
- *
- * @param {string} datasetId - The ID of the DataSource document.
- * @param {Object} config - The dashboard JSON config.
- * @returns {Promise<Object>} The updated DataSource document.
- */
-const saveDashboardConfig = async (datasetId, config) => {
-  return DataSource.findByIdAndUpdate(
-    datasetId,
-    {
-      $set: {
-        dashboardConfig: config
-      }
-    },
-    { new: true }
-  );
-};
-
-/**
- * Merges and saves generated insights to the dataset's dashboard config.
- *
- * @param {string} datasetId - The ID of the DataSource document.
- * @param {Array<Object>} insights - The array of generated insights.
- * @returns {Promise<Object>} The updated DataSource document.
- */
-const updateInsights = async (datasetId, insights) => {
-  const dataSource = await DataSource.findById(datasetId);
-  if (!dataSource) {
-    throw new Error(`DataSource not found for ID: ${datasetId}`);
+  // Batch insert in chunks of 1000 for MongoDB performance
+  const batchSize = 1000;
+  for (let i = 0; i < documents.length; i += batchSize) {
+    const chunk = documents.slice(i, i + batchSize);
+    await DatasetRow.insertMany(chunk);
   }
+};
 
-  const updatedConfig = {
-    ...(dataSource.dashboardConfig || {}),
-    insights,
-    generatedAt: new Date()
-  };
+/**
+ * Finds a dataset by ID owned by a specific user.
+ */
+const findDatasetByIdAndOwner = async (datasetId, ownerId) => {
+  return await Dataset.findOne({ _id: datasetId, ownerId });
+};
 
-  return DataSource.findByIdAndUpdate(
-    datasetId,
-    {
-      $set: {
-        dashboardConfig: updatedConfig
-      }
-    },
-    { new: true }
-  );
+/**
+ * Retrieves up to `limit` sample rows for a dataset owned by a specific user.
+ */
+const getDatasetSampleRows = async (datasetId, ownerId, limit = 10) => {
+  const rows = await DatasetRow.find({ datasetId, ownerId }).limit(limit).lean();
+  return rows.map(r => r.data);
+};
+
+/**
+ * Retrieves all rows for a dataset owned by a specific user (for server-side execution engine).
+ */
+const getAllDatasetRows = async (datasetId, ownerId) => {
+  const rows = await DatasetRow.find({ datasetId, ownerId }).lean();
+  return rows.map(r => r.data);
+};
+
+/**
+ * Lists datasets owned by a specific user.
+ */
+const listUserDatasets = async (ownerId) => {
+  return await Dataset.find({ ownerId }).sort({ createdAt: -1 }).lean();
 };
 
 module.exports = {
-  updateClassification,
-  updateColumnRoles,
-  updateKpis,
-  updateCharts,
-  saveDashboardConfig,
-  updateInsights
+  createDataset,
+  insertDatasetRows,
+  findDatasetByIdAndOwner,
+  getDatasetSampleRows,
+  getAllDatasetRows,
+  listUserDatasets
 };
