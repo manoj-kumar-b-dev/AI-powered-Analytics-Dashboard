@@ -12,6 +12,7 @@ import { useDashboard } from "../hooks/useDashboard";
 import { useFilters } from "../hooks/useFilters";
 import { ReportsTab } from "../components/ReportsTab";
 import { AskAiChatPage } from "../../ask-ai/components/AskAiChatPage";
+import { SettingsPage } from "../../settings/pages/SettingsPage";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, ArrowRight } from "lucide-react";
 
@@ -69,11 +70,8 @@ export default function Dashboard() {
     }
   }, [dataSources.selectedDSId, fetchDashboard]);
 
-  const aiInsights = useMemo(() => {
-    const { dashboard } = useDashboardStore.getState();
-    if (!dashboard || !dashboard.insights) return [];
-    return dashboard.insights;
-  }, [isStoreLoading]);
+  const currentDashboard = useDashboardStore((state) => state.dashboard);
+  const aiInsights = currentDashboard?.insights || [];
 
   const invalidateAndReload = React.useCallback(() => {
     fetchDashboard();
@@ -99,11 +97,9 @@ export default function Dashboard() {
     }
   };
 
-  const currentDashboard = useDashboardStore((state) => state.dashboard);
-
   return (
-    <div className="min-h-screen bg-[#070B14] text-white flex select-none font-sans antialiased overflow-x-hidden max-w-[100vw]">
-      
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070B14] text-slate-900 dark:text-white flex select-none font-sans antialiased overflow-x-hidden max-w-[100vw] transition-colors duration-300">
+
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -111,10 +107,9 @@ export default function Dashboard() {
         onToggleCollapse={handleSidebarToggle}
       />
 
-      <div className={`flex-1 flex flex-col min-h-screen bg-[#070B14] transition-all duration-300 min-w-0 overflow-x-hidden max-w-full ${
-        isSidebarCollapsed ? "pl-[76px]" : "pl-[260px]"
-      }`}>
-        
+      <div className={`flex-1 flex flex-col min-h-screen bg-slate-50 dark:bg-[#070B14] transition-all duration-300 min-w-0 overflow-x-hidden max-w-full ${isSidebarCollapsed ? "pl-[76px]" : "pl-[260px]"
+        }`}>
+
         <Topbar
           title={activeTab}
           onUploadClick={handleUploadClick}
@@ -129,14 +124,14 @@ export default function Dashboard() {
         <main className="flex-1 p-6 md:p-8 overflow-y-auto space-y-6 select-text custom-scrollbar min-w-0 max-w-full overflow-x-hidden">
           {activeTab === "Dashboard" ? (
             <div className="space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
-              
+
               {!hasDatasets ? (
-                <div className="h-[50vh] rounded-3xl border border-dashed border-[#1F2937] bg-slate-900/10 flex flex-col items-center justify-center text-center p-8 backdrop-blur-md">
-                  <div className="h-16 w-16 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 text-[#c084fc] flex items-center justify-center mb-4 shadow-lg shadow-purple-500/5">
+                <div className="h-[50vh] rounded-3xl border border-dashed border-slate-300 dark:border-[#1F2937] bg-white/70 dark:bg-slate-900/10 flex flex-col items-center justify-center text-center p-8 backdrop-blur-md shadow-sm">
+                  <div className="h-16 w-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-[#8B5CF6] flex items-center justify-center mb-4 shadow-lg shadow-purple-500/5">
                     <span className="text-3xl">📊</span>
                   </div>
-                  <h3 className="text-lg font-bold text-white font-display">No datasets uploaded yet</h3>
-                  <p className="text-gray-400 text-xs mt-1.5 max-w-sm leading-relaxed">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white font-display">No datasets uploaded yet</h3>
+                  <p className="text-slate-500 dark:text-gray-400 text-xs mt-1.5 max-w-sm leading-relaxed">
                     Import your sales, revenue, or customer spreadsheets to automatically generate dashboards, KPIs, charts, and AI insights.
                   </p>
                   <button
@@ -148,26 +143,26 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-slate-900/30 border border-[#1F2937]/40 px-5 py-3 rounded-2xl gap-3 backdrop-blur-md relative overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white/80 dark:bg-slate-900/30 border border-slate-200 dark:border-[#1F2937]/40 px-5 py-3 rounded-2xl gap-3 backdrop-blur-md relative overflow-hidden shadow-sm transition-colors duration-300">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-2 w-2 rounded-full bg-emerald-500 pulse-indicator shrink-0" />
                       <div>
-                        <h2 className="text-xs font-bold text-white tracking-wide uppercase font-display flex items-center gap-1.5">
+                        <h2 className="text-xs font-bold text-slate-900 dark:text-white tracking-wide uppercase font-display flex items-center gap-1.5">
                           Dashboard Workspace
                         </h2>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
-                          {isEditing 
-                            ? "Layout modification unlocked. Drag or resize cards." 
-                            : `Previewing live operations (${widgets.length} Active Widgets)`}
+                        <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">
+                          {isEditing
+                            ? "Layout modification unlocked. Drag or resize cards."
+                            : ``}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <div className="text-[10px] text-gray-500 hidden md:block">
+                      <div className="text-[10px] text-slate-500 dark:text-gray-500 hidden md:block">
                         Refreshed: <span className="text-[#8B5CF6] font-mono">{lastRefreshed}</span>
                       </div>
-                      
+
                       {isEditing ? (
                         <div className="flex items-center gap-2">
                           <button
@@ -178,7 +173,7 @@ export default function Dashboard() {
                           </button>
                           <button
                             onClick={() => setIsEditing(false)}
-                            className="h-8 text-[10px] font-bold px-3.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-gray-300 transition-all cursor-pointer border border-[#1F2937]/50"
+                            className="h-8 text-[10px] font-bold px-3.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 transition-all cursor-pointer border border-slate-300 dark:border-[#1F2937]/50"
                           >
                             Exit
                           </button>
@@ -187,13 +182,13 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setIsEditing(true)}
-                            className="h-8 text-[10px] font-bold px-3.5 rounded-lg bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/25 border border-[#8B5CF6]/35 text-[#c084fc] transition-all cursor-pointer"
+                            className="h-8 text-[10px] font-bold px-3.5 rounded-lg bg-[#8B5CF6]/15 hover:bg-[#8B5CF6]/25 border border-[#8B5CF6]/35 text-[#8B5CF6] dark:text-[#c084fc] transition-all cursor-pointer"
                           >
                             Edit Layout
                           </button>
                           <button
                             onClick={handleResetLayout}
-                            className="h-8 text-[10px] font-bold px-3.5 rounded-lg bg-slate-900/40 hover:bg-slate-800/40 border border-[#1F2937]/50 text-gray-400 hover:text-white transition-all cursor-pointer"
+                            className="h-8 text-[10px] font-bold px-3.5 rounded-lg bg-slate-100 dark:bg-slate-900/40 hover:bg-slate-200 dark:hover:bg-slate-800/40 border border-slate-200 dark:border-[#1F2937]/50 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                           >
                             Reset
                           </button>
@@ -212,22 +207,25 @@ export default function Dashboard() {
                         <div className="h-80 rounded-2xl skeleton border border-white/[0.03]" />
                       </div>
                     ) : widgets.length > 0 ? (
-                      <DashboardCanvas
-                        widgets={widgets}
-                        onLayoutChange={handleLayoutChange}
-                        isEditMode={isEditing}
-                        onEditWidget={(widget) => alert(`Configuring settings for: ${widget.title}`)}
-                        onDuplicateWidget={(widget) => {
-                          const newId = `widget-dup-${Date.now()}`;
-                          setWidgets((prev) => [...prev, { ...widget, id: newId, layout: { ...widget.layout, y: widget.layout.y + 2, x: 0 } }]);
-                        }}
-                        onDeleteWidget={(widget) => {
-                          if (window.confirm(`Delete widget "${widget.title}"?`)) {
-                            setWidgets((prev) => prev.filter((w) => w.id !== widget.id));
-                          }
-                        }}
-                        onAddFirstWidget={() => alert("Drag a widget from the configuration toolbox.")}
-                      />
+                      <>
+                        <DashboardCanvas
+                          widgets={widgets}
+                          onLayoutChange={handleLayoutChange}
+                          isEditMode={isEditing}
+                          onEditWidget={(widget) => alert(`Configuring settings for: ${widget.title}`)}
+                          onDuplicateWidget={(widget) => {
+                            const newId = `widget-dup-${Date.now()}`;
+                            setWidgets((prev) => [...prev, { ...widget, id: newId, layout: { ...widget.layout, y: widget.layout.y + 2, x: 0 } }]);
+                          }}
+                          onDeleteWidget={(widget) => {
+                            if (window.confirm(`Delete widget "${widget.title}"?`)) {
+                              setWidgets((prev) => prev.filter((w) => w.id !== widget.id));
+                            }
+                          }}
+                          onAddFirstWidget={() => alert("Drag a widget from the configuration toolbox.")}
+                        />
+                        <AIInsightsPanel data={aiInsights} onViewAll={() => setActiveTab("AI Insights")} />
+                      </>
                     ) : (
                       <div className="h-[40vh] rounded-2xl border border-dashed border-[#1F2937] bg-[#111827]/10 flex flex-col items-center justify-center text-center p-8 backdrop-blur-md">
                         <div className="h-16 w-16 rounded-full bg-slate-900 border border-[#1F2937] text-gray-500 flex items-center justify-center shrink-0 mb-4 animate-pulse">
@@ -285,9 +283,9 @@ export default function Dashboard() {
             </div>
           ) : activeTab === "AI Insights" ? (
             <div className="max-w-6xl mx-auto space-y-6 w-full text-left font-semibold">
-              <InsightGenerator 
-                config={currentDashboard?.config || currentDashboard || {}} 
-                data={currentDashboard?.data || currentDashboard?.sampleRows || []} 
+              <InsightGenerator
+                config={currentDashboard?.config || currentDashboard || {}}
+                data={currentDashboard?.data || currentDashboard?.sampleRows || []}
               />
             </div>
           ) : activeTab === "AI Chat" ? (
@@ -297,6 +295,10 @@ export default function Dashboard() {
           ) : activeTab === "Reports" ? (
             <div className="w-full text-left">
               <ReportsTab dashboard={currentDashboard} recentUploadsList={recentUploadsList} />
+            </div>
+          ) : activeTab === "Settings" ? (
+            <div className="w-full text-left">
+              <SettingsPage />
             </div>
           ) : (
             <div className="min-h-[70vh] rounded-2xl border border-[#1F2937]/50 bg-slate-900/10 flex flex-col items-center justify-center text-center p-8 backdrop-blur-sm">

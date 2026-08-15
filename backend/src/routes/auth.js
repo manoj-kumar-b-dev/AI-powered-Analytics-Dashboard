@@ -69,4 +69,7 @@ router.put('/switch-org', requireAuth, authController.switchOrg);
 // GET /auth/me - Get current user profile
 router.get('/me', requireAuth, authController.me);
 
+// PUT /auth/me - Update user profile (name, avatarUrl)
+router.put('/me', requireAuth, authController.updateProfile);
+
 module.exports = router;

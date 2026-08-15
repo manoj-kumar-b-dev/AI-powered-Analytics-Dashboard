@@ -12,7 +12,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { formatBytes } from "./UploadProgressPanel";
-import { AutoVisualizationContainer } from "../../analytics/components/AutoVisualizationContainer";
+
 
 export function ClientPreviewWizard({
   activeFile,
@@ -136,7 +136,7 @@ export function ClientPreviewWizard({
                   setSelectedSheet(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-8 bg-[#050810]/80 border border-[#1F2937] text-xs text-white rounded-xl px-2.5 outline-none font-semibold hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-8 bg-slate-50 dark:bg-[#050810]/80 border border-slate-200 dark:border-[#1F2937] text-xs text-slate-900 dark:text-white rounded-xl px-2.5 outline-none font-semibold hover:border-slate-400 dark:hover:border-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {excelSheets.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -148,7 +148,7 @@ export function ClientPreviewWizard({
           <button
             onClick={resetUploadWizard}
             disabled={isUploading}
-            className="p-1.5 rounded-lg border border-[#1F2937] hover:bg-slate-900 text-gray-400 hover:text-white cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1F2937] hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Discard upload"
           >
             <X className="h-4 w-4" />
@@ -167,24 +167,28 @@ export function ClientPreviewWizard({
           <>
             {/* Metadata Summary Cards */}
             {summaryData && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 select-text">
-                <div className="p-3.5 bg-slate-900/10 border border-[#1F2937]/40 rounded-xl relative">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block font-mono">Row Count</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{summaryData.rowsCount}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5 select-text">
+                <div className="p-3.5 bg-white dark:bg-gradient-to-b dark:from-[#0A0E1A] dark:to-[#070B14] border border-slate-200 dark:border-[#1F2937]/70 rounded-xl relative overflow-hidden group hover:border-[#8B5CF6]/40 transition-all">
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#8B5CF6]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider block font-mono">Row Count</span>
+                  <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mt-1 block font-display">{summaryData.rowsCount}</span>
                 </div>
-                <div className="p-3.5 bg-slate-900/10 border border-[#1F2937]/40 rounded-xl">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block font-mono">Column Count</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{summaryData.columnsCount}</span>
+                <div className="p-3.5 bg-white dark:bg-gradient-to-b dark:from-[#0A0E1A] dark:to-[#070B14] border border-slate-200 dark:border-[#1F2937]/70 rounded-xl relative overflow-hidden group hover:border-[#8B5CF6]/40 transition-all">
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#8B5CF6]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider block font-mono">Column Count</span>
+                  <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mt-1 block font-display">{summaryData.columnsCount}</span>
                 </div>
-                <div className="p-3.5 bg-slate-900/10 border border-[#1F2937]/40 rounded-xl">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block font-mono">Validation Errors</span>
-                  <span className={`text-lg font-bold mt-1 block ${validationErrors.length > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                <div className="p-3.5 bg-white dark:bg-gradient-to-b dark:from-[#0A0E1A] dark:to-[#070B14] border border-slate-200 dark:border-[#1F2937]/70 rounded-xl relative overflow-hidden group hover:border-[#8B5CF6]/40 transition-all">
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#8B5CF6]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider block font-mono">Validation Errors</span>
+                  <span className={`text-base sm:text-lg font-extrabold mt-1 block font-display ${validationErrors.length > 0 ? "text-rose-500" : "text-emerald-500"}`}>
                     {validationErrors.length}
                   </span>
                 </div>
-                <div className="p-3.5 bg-slate-900/10 border border-[#1F2937]/40 rounded-xl">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block font-mono">Estimated Memory</span>
-                  <span className="text-lg font-bold text-white mt-1 block">{formatBytes(summaryData.estimatedMemoryBytes)}</span>
+                <div className="p-3.5 bg-white dark:bg-gradient-to-b dark:from-[#0A0E1A] dark:to-[#070B14] border border-slate-200 dark:border-[#1F2937]/70 rounded-xl relative overflow-hidden group hover:border-[#8B5CF6]/40 transition-all">
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#8B5CF6]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider block font-mono">Estimated Memory</span>
+                  <span className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mt-1 block font-display">{formatBytes(summaryData.estimatedMemoryBytes)}</span>
                 </div>
               </div>
             )}
@@ -222,129 +226,17 @@ export function ClientPreviewWizard({
               </div>
             )}
 
-            {/* Local Chart Automated recommendation previews */}
-            <div className="mb-2">
-              <AutoVisualizationContainer
-                initialRows={parsedData.rows}
-                initialHeaders={parsedData.headers}
-              />
-            </div>
-
-            {/* Grid Table sample */}
-            <div className="bg-[#0A0E1A] border border-[#1F2937]/50 rounded-xl overflow-x-hidden flex flex-col min-w-0 max-w-full">
-              <div className="p-3.5 border-b border-[#1F2937]/30 flex flex-wrap gap-3 justify-between items-center bg-slate-950/20">
-                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                  Dataset Preview (First 20 rows)
-                </span>
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
-                    <input
-                      type="text"
-                      placeholder="Search rows..."
-                      value={searchTerm}
-                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                      className="h-8 bg-[#050810]/80 border border-[#1F2937] rounded-xl pl-8 pr-3.5 text-xs text-white placeholder-gray-500 focus:border-gray-500 transition-colors outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto overflow-y-auto max-w-full w-full max-h-[300px] custom-scrollbar">
-                <table className="w-full text-left border-collapse select-text">
-                  <thead className="bg-[#050810]/95 sticky top-0 z-10 border-b border-[#1F2937]/60">
-                    <tr>
-                      <th className="p-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider font-mono border-r border-[#1F2937]/30 w-[50px] text-center">#</th>
-                      {parsedData.headers.map((col) => (
-                        <th
-                          key={col}
-                          onClick={() => requestSort(col)}
-                          className="p-2.5 text-[10px] font-bold text-gray-300 uppercase tracking-wider border-r border-[#1F2937]/30 cursor-pointer hover:bg-slate-900/60 transition-colors whitespace-nowrap min-w-[120px]"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span>{col}</span>
-                            <ArrowUpDown className="h-3 w-3 text-gray-500 shrink-0" />
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1F2937]/30 font-mono text-[11px]">
-                    {paginatedRows.length === 0 ? (
-                      <tr>
-                        <td colSpan={parsedData.headers.length + 1} className="p-6 text-center text-gray-500">
-                          No preview rows match search.
-                        </td>
-                      </tr>
-                    ) : (
-                      paginatedRows.map((row, index) => {
-                        const globalRowIndex = (currentPage - 1) * rowsPerPage + index + 2;
-                        return (
-                          <tr key={index} className="hover:bg-slate-900/20 transition-colors">
-                            <td className="p-2.5 text-center text-gray-500 border-r border-[#1F2937]/30 select-none bg-[#050810]/30">{globalRowIndex}</td>
-                            {parsedData.headers.map((col) => {
-                              const cellVal = row[col];
-                              const cellError = validationErrors.find((e) => e.row === globalRowIndex && e.column === col);
-                              return (
-                                <td
-                                  key={col}
-                                  className={`p-2.5 border-r border-[#1F2937]/20 truncate ${
-                                    cellError ? "bg-rose-500/10 border-rose-500/35 text-rose-300 font-bold" : "text-gray-300"
-                                  }`}
-                                  title={cellError ? cellError.message : (cellVal !== null ? cellVal.toString() : "—")}
-                                >
-                                  {cellVal !== null && cellVal !== undefined ? cellVal.toString() : "—"}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Table pagination */}
-              {totalPages > 1 && (
-                <div className="p-3 border-t border-[#1F2937]/30 bg-slate-950/20 flex justify-between items-center select-none">
-                  <span className="text-[10px] text-gray-400 font-mono">
-                    Showing {Math.min(sortedRows.length, (currentPage - 1) * rowsPerPage + 1)}-{Math.min(sortedRows.length, currentPage * rowsPerPage)} of {sortedRows.length} rows (limit 20)
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handlePageChange("prev")}
-                      disabled={currentPage === 1}
-                      className="h-8 w-8 rounded-lg bg-slate-900 border border-[#1F2937] hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center cursor-pointer text-white"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className="h-8 px-3 rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/35 flex items-center justify-center text-xs font-bold text-[#c084fc] font-mono">
-                      {currentPage} / {totalPages}
-                    </span>
-                    <button
-                      onClick={() => handlePageChange("next")}
-                      disabled={currentPage === totalPages}
-                      className="h-8 w-8 rounded-lg bg-slate-900 border border-[#1F2937] hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center cursor-pointer text-white"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Actions Panel Footer */}
-            <div className="p-5 bg-[#0A0E1A]/40 border border-[#1F2937] rounded-xl space-y-4">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono border-b border-[#1F2937]/30 pb-2">
+            {/* Import Configuration Panel */}
+            <div className="p-5 bg-white dark:bg-[#0A0E1A]/40 border border-slate-200 dark:border-[#1F2937] rounded-xl space-y-4">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider font-mono border-b border-slate-200 dark:border-[#1F2937]/30 pb-2">
                 Import Configuration
               </h4>
               
               <div className="flex flex-col md:flex-row md:items-center gap-5 justify-between select-none">
                 <div className="flex flex-wrap gap-4 items-center">
-                  <span className="text-xs text-gray-400 font-medium">Action:</span>
+                  <span className="text-xs text-slate-500 dark:text-gray-400 font-medium">Action:</span>
                   
-                  <label className="flex items-center gap-2 text-xs text-gray-300 font-semibold cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-gray-300 font-semibold cursor-pointer">
                     <input
                       type="radio"
                       name="importAction"
@@ -448,6 +340,112 @@ export function ClientPreviewWizard({
                   )}
                 </button>
               </div>
+            </div>
+
+
+
+            {/* Grid Table sample */}
+            <div className="bg-white dark:bg-[#0A0E1A] border border-slate-200 dark:border-[#1F2937]/50 rounded-xl overflow-x-hidden flex flex-col min-w-0 max-w-full">
+              <div className="p-3.5 border-b border-slate-200 dark:border-[#1F2937]/30 flex flex-wrap gap-3 justify-between items-center bg-slate-50 dark:bg-slate-950/20">
+                <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
+                  Dataset Preview (First 20 rows)
+                </span>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Search rows..."
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                      className="h-8 bg-slate-50 dark:bg-[#050810]/80 border border-slate-200 dark:border-[#1F2937] rounded-xl pl-8 pr-3.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 focus:border-[#8B5CF6] transition-colors outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto overflow-y-auto max-w-full w-full max-h-[300px] custom-scrollbar">
+                <table className="w-full text-left border-collapse select-text">
+                  <thead className="bg-slate-100 dark:bg-[#050810]/95 sticky top-0 z-10 border-b border-slate-200 dark:border-[#1F2937]/60">
+                    <tr>
+                      <th className="p-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider font-mono border-r border-slate-200 dark:border-[#1F2937]/30 w-[50px] text-center">#</th>
+                      {parsedData.headers.map((col) => (
+                        <th
+                          key={col}
+                          onClick={() => requestSort(col)}
+                          className="p-2.5 text-[10px] font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider border-r border-slate-200 dark:border-[#1F2937]/30 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900/60 transition-colors whitespace-nowrap min-w-[120px]"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{col}</span>
+                            <ArrowUpDown className="h-3 w-3 text-gray-500 shrink-0" />
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-[#1F2937]/30 font-mono text-[11px]">
+                    {paginatedRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={parsedData.headers.length + 1} className="p-6 text-center text-slate-500 dark:text-gray-500">
+                          No preview rows match search.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedRows.map((row, index) => {
+                        const globalRowIndex = (currentPage - 1) * rowsPerPage + index + 2;
+                        return (
+                          <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-900/20 transition-colors">
+                            <td className="p-2.5 text-center text-slate-400 dark:text-gray-500 border-r border-slate-200 dark:border-[#1F2937]/30 select-none bg-slate-50 dark:bg-[#050810]/30">{globalRowIndex}</td>
+                            {parsedData.headers.map((col) => {
+                              const cellVal = row[col];
+                              const cellError = validationErrors.find((e) => e.row === globalRowIndex && e.column === col);
+                              return (
+                                <td
+                                  key={col}
+                                  className={`p-2.5 border-r border-slate-200 dark:border-[#1F2937]/20 truncate ${
+                                    cellError ? "bg-rose-500/10 border-rose-500/35 text-rose-500 dark:text-rose-300 font-bold" : "text-slate-700 dark:text-gray-300"
+                                  }`}
+                                  title={cellError ? cellError.message : (cellVal !== null ? cellVal.toString() : "—")}
+                                >
+                                  {cellVal !== null && cellVal !== undefined ? cellVal.toString() : "—"}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table pagination */}
+              {totalPages > 1 && (
+                <div className="p-3 border-t border-[#1F2937]/30 bg-slate-950/20 flex justify-between items-center select-none">
+                  <span className="text-[10px] text-gray-400 font-mono">
+                    Showing {Math.min(sortedRows.length, (currentPage - 1) * rowsPerPage + 1)}-{Math.min(sortedRows.length, currentPage * rowsPerPage)} of {sortedRows.length} rows (limit 20)
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePageChange("prev")}
+                      disabled={currentPage === 1}
+                      className="h-8 w-8 rounded-lg bg-slate-900 border border-[#1F2937] hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center cursor-pointer text-white"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="h-8 px-3 rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/35 flex items-center justify-center text-xs font-bold text-[#c084fc] font-mono">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => handlePageChange("next")}
+                      disabled={currentPage === totalPages}
+                      className="h-8 w-8 rounded-lg bg-slate-900 border border-[#1F2937] hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center cursor-pointer text-white"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}

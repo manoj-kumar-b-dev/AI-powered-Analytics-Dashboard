@@ -1,5 +1,6 @@
 import React from 'react';
 import { Building, LayoutGrid, FileText, LogOut } from 'lucide-react';
+import logoImg from '../../../Images/Logo.png';
 
 export const Header = ({
   activeTab,
@@ -14,9 +15,12 @@ export const Header = ({
   return (
     <header className="glass-panel" style={{ margin: '16px', padding: '16px 24px', display: 'flex', justifycontent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, background: 'linear-gradient(to right, #a78bfa, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: 'var(--font-display)' }}>
-          Antigravity SaaS
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src={logoImg} alt="Vizora Logo" style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }} />
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, background: 'linear-gradient(to right, #a78bfa, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: 'var(--font-display)' }}>
+            Vizora
+          </h2>
+        </div>
 
         {/* Org selector dropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid hsl(var(--card-border))', padding: '6px 12px', borderRadius: '8px' }}>

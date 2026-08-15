@@ -81,7 +81,7 @@ export async function getDatasetProfileApi(datasetId) {
 /**
  * Send natural language question about a dataset
  */
-export async function askQuestionApi(datasetId, question) {
-  const response = await api.post(`/datasets/${datasetId}/ask`, { question });
+export async function askQuestionApi(datasetId, question, history = []) {
+  const response = await api.post(`/datasets/${datasetId}/ask`, { question, history });
   return response.data;
 }

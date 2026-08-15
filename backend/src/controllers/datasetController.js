@@ -133,7 +133,7 @@ class DatasetController {
       }
 
       const { datasetId } = req.params;
-      const { question } = bodyResult.data;
+      const { question, history = [] } = bodyResult.data;
       const ownerId = req.user.userId;
 
       const dataset = await datasetRepository.findDatasetByIdAndOwner(datasetId, ownerId);
@@ -146,7 +146,7 @@ class DatasetController {
         });
       }
 
-      const responseData = await askAiService.askQuestion(dataset, question, ownerId);
+      const responseData = await askAiService.askQuestion(dataset, question, ownerId, history);
 
       return res.status(200).json({
         success: true,

@@ -20,7 +20,7 @@ const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#6366F1'
 export function AskAiChart({ chartConfig }) {
   if (!chartConfig || !chartConfig.data || chartConfig.data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center border border-dashed border-[#1F2937] rounded-xl text-gray-500 text-xs font-mono">
+      <div className="h-48 flex items-center justify-center border border-dashed border-slate-200 dark:border-[#1F2937] rounded-xl text-slate-400 dark:text-gray-500 text-xs font-mono">
         No chart visualization data available.
       </div>
     );
@@ -32,9 +32,9 @@ export function AskAiChart({ chartConfig }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-[#111827] border border-[#1F2937] px-3 py-2 rounded-xl shadow-2xl text-xs font-sans">
-          <p className="font-bold text-gray-200">{`${label || payload[0].name}`}</p>
-          <p className="text-[#c084fc] font-semibold mt-1">
+        <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1F2937] px-3 py-2 rounded-xl shadow-2xl text-xs font-sans">
+          <p className="font-bold text-slate-800 dark:text-gray-200">{`${label || payload[0].name}`}</p>
+          <p className="text-[#8B5CF6] dark:text-[#c084fc] font-semibold mt-1">
             {`${yKey}: ${typeof payload[0].value === 'number' ? payload[0].value.toLocaleString() : payload[0].value}`}
           </p>
         </div>

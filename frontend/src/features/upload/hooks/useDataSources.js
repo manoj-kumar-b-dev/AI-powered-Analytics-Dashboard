@@ -122,12 +122,8 @@ export const useDataSources = ({ onDeleteSuccess, onUploadSuccess } = {}) => {
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/datasources/upload', {
+      const res = await apiRequest('/datasources/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formData
       });
 

@@ -3,6 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { parseFileClientSide, readWorkbookSheets } from "../../shared/utils/fileParser";
 import { detectColumnTypes, validateDataset, calculateSummary } from "../../shared/utils/schemaValidator";
 import { useAuth } from "../../authentication/contexts/AuthContext";
+import { refreshToken } from "../../shared/services/apiClient";
 import { KPI_SYNONYMS } from "../../shared/constants/kpiSynonyms";
 
 import { DatasetSidebar } from "./DatasetSidebar";
@@ -153,55 +154,71 @@ export function DatasetUploadManager({
       formData.append("targetDataSourceId", targetDatasetId);
     }
 
-    const xhr = new XMLHttpRequest();
-    xhrRef.current = xhr;
+    const startXhrUpload = (authToken, isRetry = false) => {
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const pct = Math.round((e.loaded / e.total) * 100);
-        setUploadProgress(pct);
-        if (pct >= 100) {
-          setUploadState("saving");
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress(pct);
+          if (pct >= 100) {
+            setUploadState("saving");
+          }
         }
-      }
-    };
+      };
 
-    xhr.onload = async () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const resData = JSON.parse(xhr.responseText);
-          setUploadState("success");
-          setTimeout(async () => {
-            await loadDataSources();
-            await selectDataSourceForPreview(resData.dataSourceId);
-            if (onUploadSuccess) {
-              onUploadSuccess(resData.dataSourceId);
-            }
-            resetUploadWizard();
-          }, 1200);
-        } catch (err) {
+      xhr.onload = async () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const resData = JSON.parse(xhr.responseText);
+            setUploadState("success");
+            setTimeout(async () => {
+              await loadDataSources();
+              await selectDataSourceForPreview(resData.dataSourceId);
+              if (onUploadSuccess) {
+                onUploadSuccess(resData.dataSourceId);
+              }
+              resetUploadWizard();
+            }, 1200);
+          } catch (err) {
+            setUploadState("error");
+            setNetworkError("Failed to parse upload confirmation.");
+          }
+        } else if (xhr.status === 401 && !isRetry) {
+          const newToken = await refreshToken();
+          if (newToken) {
+            startXhrUpload(newToken, true);
+            return;
+          }
           setUploadState("error");
-          setNetworkError("Failed to parse upload confirmation.");
+          setNetworkError("Invalid or expired session. Please log in again.");
+        } else {
+          setUploadState("error");
+          try {
+            const errData = JSON.parse(xhr.responseText);
+            setNetworkError(errData.error?.message || "Database import failed.");
+          } catch (err) {
+            setNetworkError(`Server returned error code: ${xhr.status}`);
+          }
         }
-      } else {
+      };
+
+      xhr.onerror = () => {
         setUploadState("error");
-        try {
-          const errData = JSON.parse(xhr.responseText);
-          setNetworkError(errData.error?.message || "Database import failed.");
-        } catch (err) {
-          setNetworkError(`Server returned error code: ${xhr.status}`);
-        }
+        setNetworkError("Network error uploading file.");
+      };
+
+      xhr.open("POST", "http://localhost:5000/datasources/upload");
+      xhr.withCredentials = true;
+      if (authToken) {
+        xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
       }
+      xhr.send(formData);
     };
 
-    xhr.onerror = () => {
-      setUploadState("error");
-      setNetworkError("Network error uploading file.");
-    };
-
-    xhr.open("POST", "http://localhost:5000/datasources/upload");
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.send(formData);
+    const token = localStorage.getItem("token");
+    startXhrUpload(token);
   };
 
   const downloadErrorsCsv = () => {

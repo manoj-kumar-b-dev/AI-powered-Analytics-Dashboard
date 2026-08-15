@@ -3,7 +3,7 @@ import React, { forwardRef } from "react";
 export function Card({ className = "", children, ...props }) {
   return (
     <div
-      className={`bg-[#13131A] border border-white/[0.08] rounded-xl overflow-hidden shadow-xl ${className}`}
+      className={`bg-white dark:bg-[#13131A] border border-slate-200 dark:border-white/[0.08] rounded-xl overflow-hidden shadow-xl ${className}`}
       {...props}
     >
       {children}
@@ -22,7 +22,7 @@ export function CardHeader({ className = "", children, ...props }) {
 export function CardTitle({ className = "", children, ...props }) {
   return (
     <h3
-      className={`text-white font-semibold font-display text-base tracking-tight ${className}`}
+      className={`text-slate-900 dark:text-white font-semibold font-display text-base tracking-tight ${className}`}
       {...props}
     >
       {children}
@@ -32,7 +32,7 @@ export function CardTitle({ className = "", children, ...props }) {
 
 export function CardDescription({ className = "", children, ...props }) {
   return (
-    <p className={`text-gray-400 text-xs ${className}`} {...props}>
+    <p className={`text-slate-500 dark:text-gray-400 text-xs ${className}`} {...props}>
       {children}
     </p>
   );

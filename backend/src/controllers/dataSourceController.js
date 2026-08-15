@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const DataSource = require('../models/dataSource');
 const DataRow = require('../models/dataRow');
 const { handleFileImport } = require('../services/dataSourceService');
@@ -35,7 +36,7 @@ exports.uploadFile = async (req, res) => {
 
 exports.listDataSources = async (req, res) => {
   try {
-    const dataSources = await DataSource.find({ orgId: req.user.orgId }).sort({ createdAt: -1 });
+    const dataSources = await DataSource.find({ orgId: req.user.orgId }).sort({ createdAt: -1 }).lean();
     return res.status(200).json(dataSources);
   } catch (err) {
     console.error('List DataSources Error:', err);
@@ -52,6 +53,15 @@ exports.previewDataSource = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Data source not found or invalid ID'
+        }
+      });
+    }
+
     const dataSource = await DataSource.findOne({
       _id: id,
       orgId: req.user.orgId
@@ -66,12 +76,16 @@ exports.previewDataSource = async (req, res) => {
       });
     }
 
-    const rows = await DataRow.find({ 
+    let rows = await DataRow.find({ 
       dataSourceId: id,
       orgId: req.user.orgId 
-    }).limit(50);
+    }).limit(50).lean();
 
-    const dsObj = dataSource.toObject();
+    if (!rows || rows.length === 0) {
+      rows = await DataRow.find({ dataSourceId: id }).limit(50).lean();
+    }
+
+    const dsObj = dataSource.toObject ? dataSource.toObject() : dataSource;
     return res.status(200).json({
       dataSource: {
         _id: dsObj._id,
@@ -98,21 +112,55 @@ exports.previewDataSource = async (req, res) => {
 exports.allRowsDataSource = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Data source not found or invalid ID'
+        }
+      });
+    }
+
     const dataSource = await DataSource.findOne({ _id: id, orgId: req.user.orgId });
     if (!dataSource) {
-      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Data source not found or access denied' } });
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Data source not found or access denied'
+        }
+      });
     }
-    const rows = await DataRow.find({ dataSourceId: id, orgId: req.user.orgId }).select('data -_id');
+
+    let rows = await DataRow.find({ dataSourceId: id, orgId: req.user.orgId }).select('data -_id').lean();
+    if (!rows || rows.length === 0) {
+      rows = await DataRow.find({ dataSourceId: id }).select('data -_id').lean();
+    }
+
     return res.status(200).json(rows.map(r => r.data));
   } catch (err) {
     console.error('Fetch All Rows Error:', err);
-    return res.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch all rows' } });
+    return res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to fetch all rows'
+      }
+    });
   }
 };
 
 exports.confirmDataSource = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Data source not found or invalid ID'
+        }
+      });
+    }
 
     const dataSource = await DataSource.findOne({
       _id: id,
@@ -155,6 +203,15 @@ exports.deleteDataSource = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Data source not found or invalid ID'
+        }
+      });
+    }
+
     const dataSource = await DataSource.findOne({
       _id: id,
       orgId: req.user.orgId
@@ -191,3 +248,4 @@ exports.deleteDataSource = async (req, res) => {
     });
   }
 };
+

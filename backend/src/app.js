@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // Reloaded config
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -31,7 +31,7 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps, curl, or postman)
       if (!origin) return callback(null, true);
-      
+
       const isAllowed = allowedOrigins.includes(origin) || /^https?:\/\/localhost:\d+$/.test(origin);
       if (isAllowed) {
         return callback(null, true);

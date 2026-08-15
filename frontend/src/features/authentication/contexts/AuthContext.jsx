@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { apiFetch, refreshToken } from '../../shared/services/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -13,59 +14,29 @@ export const AuthProvider = ({ children }) => {
 
   // Helper: Request with Auth Header
   const apiRequest = async (url, options = {}) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const res = await apiFetch(url, options);
+    // Sync token state if apiFetch auto-refreshed it
+    const updatedToken = localStorage.getItem('token');
+    if (updatedToken && updatedToken !== token) {
+      setToken(updatedToken);
     }
-
-    const res = await fetch(`${API_URL}${url}`, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
-
-    if (res.status === 401 && token) {
-      // Try to refresh
-      const refreshed = await performRefresh();
-      if (refreshed) {
-        // Retry once
-        headers['Authorization'] = `Bearer ${refreshed}`;
-        return fetch(`${API_URL}${url}`, {
-          ...options,
-          headers,
-          credentials: 'include',
-        });
-      } else {
+    // Only force logout if auth is truly gone (refresh also failed → still 401)
+    if (res.status === 401) {
+      // Check if we still have a valid token in storage (apiFetch may have refreshed it)
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) {
         handleLogoutState();
       }
     }
-
     return res;
   };
 
   const performRefresh = async () => {
-    try {
-      const res = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({}),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setToken(data.accessToken);
-        localStorage.setItem('token', data.accessToken);
-        return data.accessToken;
-      }
-    } catch (err) {
-      console.error('Refresh Token Error:', err);
+    const refreshed = await refreshToken();
+    if (refreshed) {
+      setToken(refreshed);
     }
-    return null;
+    return refreshed;
   };
 
   const handleLogoutState = () => {
@@ -94,7 +65,12 @@ export const AuthProvider = ({ children }) => {
 
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
+        const savedAvatar = localStorage.getItem('userAvatarUrl');
+        const userData = {
+          ...data.user,
+          avatarUrl: data.user?.avatarUrl || savedAvatar || ''
+        };
+        setUser(userData);
         setOrganisations(data.organisations || []);
         if (data.user?.orgId) {
           setActiveOrgId(data.user.orgId);
@@ -109,6 +85,20 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateUser = (updatedFields) => {
+    setUser((prev) => {
+      const updated = prev ? { ...prev, ...updatedFields } : updatedFields;
+      if (updatedFields.avatarUrl !== undefined) {
+        if (updatedFields.avatarUrl) {
+          localStorage.setItem('userAvatarUrl', updatedFields.avatarUrl);
+        } else {
+          localStorage.removeItem('userAvatarUrl');
+        }
+      }
+      return updated;
+    });
   };
 
   useEffect(() => {
@@ -283,6 +273,7 @@ export const AuthProvider = ({ children }) => {
         forgotPassword,
         resetPassword,
         apiRequest,
+        updateUser,
       }}
     >
       {children}

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { apiFetch } from '../../shared/services/apiClient';
 
 export const useDashboardStore = create((set, get) => ({
   activeDSId: null,
@@ -38,7 +39,6 @@ export const useDashboardStore = create((set, get) => ({
   fetchDashboard: async (datasetId) => {
     set({ isLoading: true, error: null });
     const { filters } = get();
-    const token = localStorage.getItem('token');
     
     const queryParams = new URLSearchParams();
     Object.keys(filters).forEach(key => {
@@ -54,11 +54,7 @@ export const useDashboardStore = create((set, get) => ({
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/dashboard?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await apiFetch(`/dashboard?${queryParams.toString()}`);
 
       if (!res.ok) {
         throw new Error('Failed to fetch dashboard analytics');

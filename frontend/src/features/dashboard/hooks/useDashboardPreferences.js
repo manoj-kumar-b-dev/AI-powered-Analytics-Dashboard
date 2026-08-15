@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { apiFetch } from '../../shared/services/apiClient';
 
 /**
  * Custom React Hook to load and manage per-user, per-dataset dashboard preferences
@@ -14,7 +15,6 @@ export function useDashboardPreferences(datasetId) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem('token');
   const isFirstLoad = useRef(true);
 
   // 1. Fetch initial preferences on active dataset change
@@ -25,11 +25,7 @@ export function useDashboardPreferences(datasetId) {
     isFirstLoad.current = true;
     setError(null);
 
-    fetch(`http://localhost:5000/dashboards/${datasetId}/preferences`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    apiFetch(`/dashboards/${datasetId}/preferences`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to load dashboard preferences');
         return res.json();
@@ -49,19 +45,15 @@ export function useDashboardPreferences(datasetId) {
         setError(err.message);
         setIsLoading(false);
       });
-  }, [datasetId, token]);
+  }, [datasetId]);
 
   // 2. Debounced save trigger to sync layout custom preferences with the backend
   useEffect(() => {
     if (isFirstLoad.current || !datasetId) return;
 
     const delayDebounce = setTimeout(() => {
-      fetch(`http://localhost:5000/dashboards/${datasetId}/preferences`, {
+      apiFetch(`/dashboards/${datasetId}/preferences`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           hiddenWidgetIds,
           pinnedWidgetIds,
@@ -78,7 +70,7 @@ export function useDashboardPreferences(datasetId) {
     }, 800);
 
     return () => clearTimeout(delayDebounce);
-  }, [hiddenWidgetIds, pinnedWidgetIds, widgetOrder, widgetSizes, datasetId, token]);
+  }, [hiddenWidgetIds, pinnedWidgetIds, widgetOrder, widgetSizes, datasetId]);
 
   const hideWidget = (widgetId) => {
     setHiddenWidgetIds(prev => prev.includes(widgetId) ? prev : [...prev, widgetId]);

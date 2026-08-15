@@ -37,7 +37,7 @@ export const useAutoVisualization = ({ initialRows = [], initialHeaders = [], ds
 
   // 1a. Load full dataset from backend if dsId changes
   useEffect(() => {
-    if (!dsId || !apiRequest) return;
+    if (!dsId || dsId === 'undefined' || dsId === 'null' || !apiRequest) return;
 
     const loadFullDataset = async () => {
       setIsLoading(true);
@@ -49,7 +49,7 @@ export const useAutoVisualization = ({ initialRows = [], initialHeaders = [], ds
           setHeaders(Object.keys(rows[0]));
         }
       } catch (err) {
-        if (!err.message?.includes('not found')) {
+        if (!err.message?.includes('not found') && !err.message?.includes('invalid ID')) {
           console.error('AutoVisualization Error:', err);
         }
         setError(err.message || 'Failed to fetch full rows for automated charting.');

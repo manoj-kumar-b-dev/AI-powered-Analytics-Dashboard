@@ -160,7 +160,7 @@ export function DropdownMenuContent({ children, className = "", align = "right" 
     <div
       ref={panelRef}
       style={style}
-      className={`rounded-xl border border-white/[0.08] bg-[#13131A] shadow-2xl p-1.5 ${className}`}
+      className={`rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#13131A] shadow-2xl p-1.5 ${className}`}
       // Stop mousedown from bubbling so the outside-click handler doesn't close us immediately
       onMouseDown={(e) => e.stopPropagation()}
     >
@@ -177,7 +177,7 @@ export function DropdownMenuItem({ className = "", children, onClick, ...props }
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors duration-150 ${className}`}
+      className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors duration-150 ${className}`}
       {...props}
     >
       {children}

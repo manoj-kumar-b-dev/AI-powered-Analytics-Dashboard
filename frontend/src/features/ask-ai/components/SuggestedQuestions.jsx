@@ -19,8 +19,8 @@ export function SuggestedQuestions({ columns = [], onSelectQuestion, disabled = 
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-2">
-      <div className="flex items-center gap-1 text-[10px] font-bold text-[#8B5CF6] uppercase tracking-wider pr-1">
+    <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5 whitespace-nowrap">
+      <div className="flex items-center gap-1 text-[10px] font-bold text-[#8B5CF6] uppercase tracking-wider pr-1 shrink-0">
         <Sparkles className="h-3 w-3" />
         <span>Suggested:</span>
       </div>
@@ -30,7 +30,7 @@ export function SuggestedQuestions({ columns = [], onSelectQuestion, disabled = 
           type="button"
           disabled={disabled}
           onClick={() => onSelectQuestion(q)}
-          className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900/60 hover:bg-[#8B5CF6]/20 border border-[#1F2937] hover:border-[#8B5CF6]/40 text-gray-300 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-left truncate max-w-[280px]"
+          className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-900/60 hover:bg-[#8B5CF6]/20 border border-slate-200 dark:border-[#1F2937] hover:border-[#8B5CF6]/40 text-slate-700 dark:text-gray-300 hover:text-[#8B5CF6] dark:hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           {q}
         </button>

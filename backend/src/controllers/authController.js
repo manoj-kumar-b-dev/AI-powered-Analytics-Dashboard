@@ -104,8 +104,9 @@ exports.login = async (req, res) => {
     }
 
     const { email, password } = parseResult.data;
+    const cleanEmail = email.trim().toLowerCase();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         error: {
@@ -134,7 +135,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Login Error:', err);
+    console.error('Login Error:', err.stack || err);
     return res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -319,7 +320,8 @@ exports.me = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        orgId: user.orgId
+        orgId: user.orgId,
+        avatarUrl: user.avatarUrl
       },
       organisations: orgs.map(o => ({
         orgId: o._id,
@@ -333,6 +335,39 @@ exports.me = async (req, res) => {
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Something went wrong'
+      }
+    });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, avatarUrl } = req.body;
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
+    }
+
+    if (name !== undefined) user.name = name;
+    if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+    await user.save();
+
+    return res.status(200).json({
+      user: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        orgId: user.orgId,
+        avatarUrl: user.avatarUrl
+      }
+    });
+  } catch (err) {
+    console.error('Update Profile Error:', err);
+    return res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update profile'
       }
     });
   }

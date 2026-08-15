@@ -9,7 +9,6 @@ import {
   FileSpreadsheet,
   Maximize2,
   Minimize2,
-  Sparkles,
   AlertTriangle,
   RefreshCw,
   TrendingUp,
@@ -28,7 +27,7 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
     headers,
     detectedTypes,
     recommendation,
-    
+
     // Customization states
     chartType,
     setChartType,
@@ -45,7 +44,7 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
     handleClearFilters,
     sortConfig,
     setSortConfig,
-    
+
     // Calculated aggregates
     aggregatedData,
     insights,
@@ -67,20 +66,20 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
       const URL = window.URL || window.webkitURL || window;
       const blobURL = URL.createObjectURL(svgBlob);
       const image = new Image();
-      
+
       image.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = svgElement.clientWidth || 800;
         canvas.height = svgElement.clientHeight || 450;
         const context = canvas.getContext('2d');
-        
+
         // Draw elegant dark gradient background matching dashboard
         const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
         gradient.addColorStop(0, '#070B14');
         gradient.addColorStop(1, '#0D1527');
         context.fillStyle = gradient;
         context.fillRect(0, 0, canvas.width, canvas.height);
-        
+
         context.drawImage(image, 0, 0);
         const png = canvas.toDataURL('image/png');
         const downloadLink = document.createElement('a');
@@ -101,7 +100,7 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
   // CSV download for aggregated items
   const exportCsv = () => {
     if (!aggregatedData || aggregatedData.length === 0) return;
-    
+
     let csvContent = 'X Axis Value (Dimension),Y Axis Value (Metric),Raw Row Count\r\n';
     aggregatedData.forEach(item => {
       const xVal = `"${(item.x || '').toString().replace(/"/g, '""')}"`;
@@ -122,9 +121,9 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
 
   if (isLoading) {
     return (
-      <div className="h-60 rounded-2xl border border-[#1F2937]/40 bg-slate-950/20 backdrop-blur-md flex flex-col items-center justify-center gap-3">
+      <div className="h-60 rounded-2xl border border-slate-200 dark:border-[#1F2937]/40 bg-slate-100/50 dark:bg-slate-950/20 backdrop-blur-md flex flex-col items-center justify-center gap-3">
         <RefreshCw className="h-8 w-8 text-[#8B5CF6] animate-spin" />
-        <span className="text-xs text-gray-400 font-medium">Analyzing dataset variables...</span>
+        <span className="text-xs text-slate-500 dark:text-gray-400 font-medium">Analyzing dataset variables...</span>
       </div>
     );
   }
@@ -140,10 +139,10 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
 
   if (chartType === 'none') {
     return (
-      <div className="p-10 rounded-2xl border border-dashed border-[#1F2937] bg-slate-950/20 backdrop-blur-md flex flex-col items-center justify-center text-center gap-3 select-none">
-        <BarChart2 className="h-10 w-10 text-gray-600 opacity-50 animate-pulse" />
-        <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">No suitable visualization found</h4>
-        <p className="text-xs text-gray-400 max-w-sm">
+      <div className="p-10 rounded-2xl border border-dashed border-slate-200 dark:border-[#1F2937] bg-slate-50 dark:bg-slate-950/20 backdrop-blur-md flex flex-col items-center justify-center text-center gap-3 select-none">
+        <BarChart2 className="h-10 w-10 text-slate-400 dark:text-gray-600 opacity-50 animate-pulse" />
+        <h4 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider font-mono">No suitable visualization found</h4>
+        <p className="text-xs text-slate-500 dark:text-gray-400 max-w-sm">
           We analyzed the column types but couldn't auto-generate a layout. Consider mapping Date or Category columns along with Numeric metrics.
         </p>
       </div>
@@ -151,62 +150,44 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
   }
 
   const containerClasses = isFullscreen
-    ? 'fixed inset-0 z-50 bg-[#070B14] p-8 overflow-y-auto overflow-x-hidden max-w-full flex flex-col gap-6 scrollbar-hide'
+    ? 'fixed inset-0 z-50 bg-slate-50 dark:bg-[#070B14] p-8 overflow-y-auto overflow-x-hidden max-w-full flex flex-col gap-6 scrollbar-hide'
     : 'w-full flex flex-col gap-6 min-w-0 max-w-full';
 
   return (
     <div className={containerClasses}>
-      
-      {/* AI Recommendation Banner Header */}
-      <div className="bg-gradient-to-r from-[#8B5CF6]/10 to-[#6366F1]/10 border border-[#8B5CF6]/20 rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between backdrop-blur-md">
-        <div className="flex gap-3.5 items-start">
-          <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center shrink-0 mt-0.5 select-none">
-            <Sparkles className="h-5 w-5 text-purple-400" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold text-white font-display">Automated Smart Visualization</h3>
-              <span className="text-[9px] font-extrabold uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/35 text-emerald-400">
-                Recommended: {recommendation.chartType} ({recommendation.confidence}% Confidence)
-              </span>
-            </div>
-            <p className="text-xs text-gray-300 leading-normal">{recommendation.reason}</p>
-          </div>
-        </div>
 
-        {/* Global Action Tools */}
-        <div className="flex items-center gap-2 select-none self-end md:self-auto">
-          <button
-            onClick={exportCsv}
-            className="h-9 px-3.5 rounded-xl border border-[#1F2937] hover:border-gray-500 bg-slate-900/30 hover:bg-slate-900 transition-all text-xs font-semibold text-gray-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
-            title="Export Aggregated Data to CSV"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>Export CSV</span>
-          </button>
-          
-          <button
-            onClick={downloadPng}
-            className="h-9 px-3.5 rounded-xl border border-[#1F2937] hover:border-gray-500 bg-slate-900/30 hover:bg-slate-900 transition-all text-xs font-semibold text-gray-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
-            title="Download Chart Image PNG"
-          >
-            <Download className="h-4 w-4" />
-            <span>Download PNG</span>
-          </button>
+      {/* Action Toolbar */}
+      <div className="flex justify-end items-center gap-2 select-none">
+        <button
+          onClick={exportCsv}
+          className="h-9 px-3.5 rounded-xl border border-slate-200 dark:border-[#1F2937] hover:border-slate-400 dark:hover:border-gray-500 bg-slate-100 dark:bg-slate-900/30 hover:bg-slate-200 dark:hover:bg-slate-900 transition-all text-xs font-semibold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer"
+          title="Export Aggregated Data to CSV"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          <span>Export CSV</span>
+        </button>
 
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-900 border border-[#1F2937] hover:border-gray-500 transition-colors text-white cursor-pointer"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Chart View'}
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-        </div>
+        <button
+          onClick={downloadPng}
+          className="h-9 px-3.5 rounded-xl border border-slate-200 dark:border-[#1F2937] hover:border-slate-400 dark:hover:border-gray-500 bg-slate-100 dark:bg-slate-900/30 hover:bg-slate-200 dark:hover:bg-slate-900 transition-all text-xs font-semibold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer"
+          title="Download Chart Image PNG"
+        >
+          <Download className="h-4 w-4" />
+          <span>Download PNG</span>
+        </button>
+
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-[#1F2937] hover:border-slate-400 dark:hover:border-gray-500 transition-colors text-slate-700 dark:text-white cursor-pointer"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Chart View'}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
       </div>
 
       {/* Main visualization grid layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0 max-w-full">
-        
+
         {/* Customization controls + chart viewer */}
         <div className="lg:col-span-2 space-y-6 flex flex-col min-w-0 max-w-full w-full">
           {/* Custom controls */}
@@ -236,7 +217,7 @@ export const AutoVisualizationContainer = ({ initialRows = [], initialHeaders = 
           {/* Recharts graph panel */}
           <div
             ref={chartRef}
-            className="flex-1 bg-[#0A0E1A]/20 border border-[#1F2937]/40 rounded-2xl p-5 min-h-[360px] flex items-center justify-center backdrop-blur-md relative min-w-0 max-w-full w-full"
+            className="flex-1 bg-white/60 dark:bg-[#0A0E1A]/20 border border-slate-200 dark:border-[#1F2937]/40 rounded-2xl p-5 min-h-[360px] flex items-center justify-center backdrop-blur-md relative min-w-0 max-w-full w-full"
           >
             <ChartRenderer
               chartType={chartType}

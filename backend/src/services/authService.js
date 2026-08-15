@@ -7,10 +7,12 @@ const hashToken = (token) => {
 };
 
 const generateAccessToken = (user) => {
+  const userIdStr = user && user._id ? user._id.toString() : (user?.userId || '');
+  const orgIdStr = user && user.orgId ? user.orgId.toString() : '';
   return jwt.sign(
-    { userId: user._id.toString(), orgId: user.orgId.toString(), role: user.role },
+    { userId: userIdStr, orgId: orgIdStr, role: user?.role || 'member' },
     process.env.JWT_SECRET || 'default_test_jwt_secret_must_be_long_enough_to_avoid_weak_key_errors_so_we_make_it_very_long',
-    { expiresIn: '15m' }
+    { expiresIn: '7d' }
   );
 };
 

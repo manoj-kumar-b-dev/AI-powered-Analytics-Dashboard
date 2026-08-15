@@ -5,18 +5,12 @@ import {
   LineChart,
   Sparkles,
   MessageSquare,
-  FileText,
-  Bell,
-  Target,
-  Users,
   Settings,
   ChevronLeft,
   ChevronRight,
   Crown,
   LogOut,
-  BrainCircuit,
-  Building,
-  ChevronDown
+  BrainCircuit
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -27,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "../ui/dropdown-menu";
+import logoImg from "../../../../Images/Logo.png";
 
 export function Sidebar({
   activeTab = "Dashboard",
@@ -35,8 +30,7 @@ export function Sidebar({
   onToggleCollapse,
   onSwitchToLegacy
 }) {
-  const { user, organisations, activeOrgId, switchOrg, logout } = useAuth();
-  const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const handleToggle = () => {
     if (onToggleCollapse) {
@@ -61,35 +55,22 @@ export function Sidebar({
       ]
     },
     {
-      title: "Management",
-      items: [
-        { name: "Reports", icon: FileText },
-        { name: "Alerts", icon: Bell },
-        { name: "Goals", icon: Target }
-      ]
-    },
-    {
       title: "System",
       items: [
-        { name: "Team", icon: Users },
         { name: "Settings", icon: Settings }
       ]
     }
   ];
 
-  const activeOrg = organisations?.find((org) => (org.orgId || org._id) === activeOrgId) || {
-    name: "Acme SaaS Workspace"
-  };
-
   return (
     <motion.aside
       animate={{ width: isCollapsed ? 76 : 260 }}
       transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="fixed top-0 left-0 h-screen bg-[#050810] border-r border-[#1F2937]/50 flex flex-col justify-between z-30 select-none shadow-xl"
+      className="fixed top-0 left-0 h-screen bg-white dark:bg-[#050810] border-r border-slate-200 dark:border-[#1F2937]/50 flex flex-col justify-between z-30 select-none shadow-xl transition-colors duration-300"
     >
       {/* Sidebar Header / Brand */}
       <div>
-        <div className="p-4 flex items-center justify-between min-h-[73px] border-b border-[#1F2937]/30">
+        <div className="p-4 flex items-center justify-between min-h-[73px] border-b border-slate-200 dark:border-[#1F2937]/30">
           {!isCollapsed ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -97,79 +78,39 @@ export function Sidebar({
               transition={{ delay: 0.1 }}
               className="flex items-center gap-3 w-full"
             >
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-purple-500/25 shrink-0">
-                <BrainCircuit className="h-4.5 w-4.5 text-white" />
-              </div>
+              <img src={logoImg} alt="Vizora Logo" className="h-8 w-8 object-contain rounded-lg shrink-0 shadow-md" />
               <div className="flex flex-col text-left truncate">
-                <span className="font-display font-bold text-sm text-white tracking-tight leading-tight">
-                  AI Analytics
+                <span className="font-display font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-[#a78bfa] dark:to-[#06b6d4] bg-clip-text text-transparent tracking-tight leading-tight">
+                  Vizora
                 </span>
-                <span className="text-[9px] text-[#8B5CF6] font-semibold mt-0.5 tracking-wider uppercase">Enterprise</span>
+                <span className="text-[9px] text-[#8B5CF6] dark:text-[#a78bfa] font-semibold mt-0.5 tracking-wider uppercase">AI Analytics</span>
               </div>
             </motion.div>
           ) : (
-            <div className="h-8 w-8 mx-auto rounded-lg bg-gradient-to-tr from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-purple-500/25 shrink-0">
-              <BrainCircuit className="h-4.5 w-4.5 text-white" />
+            <div className="mx-auto">
+              <img src={logoImg} alt="Vizora Logo" className="h-8 w-8 object-contain rounded-lg shrink-0 shadow-md" />
             </div>
           )}
 
           <button
             onClick={handleToggle}
-            className="hidden md:flex absolute top-[24px] -right-[12px] h-6 w-6 rounded-full border border-[#1F2937] bg-[#070B14] items-center justify-center text-gray-400 hover:text-white hover:border-gray-500 transition-all z-50 shadow-lg cursor-pointer"
+            className="hidden md:flex absolute top-[24px] -right-[12px] h-6 w-6 rounded-full border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#070B14] items-center justify-center text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-400 dark:hover:border-gray-500 transition-all z-50 shadow-lg cursor-pointer"
             aria-label="Toggle Sidebar"
           >
             {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
           </button>
         </div>
 
-        {/* Tenant workspace selector */}
-        {!isCollapsed && organisations && organisations.length > 0 && (
-          <div className="px-3 pt-4">
-            <DropdownMenu open={isOrgDropdownOpen} onOpenChange={setIsOrgDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <button className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950/40 border border-[#1F2937]/50 text-xs font-semibold text-gray-300 hover:text-white hover:bg-slate-900/60 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2 truncate">
-                    <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                    <span className="truncate">{activeOrg.name}</span>
-                  </div>
-                  <ChevronDown className="h-3 w-3 text-gray-500" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[236px] bg-[#111827] border border-[#1F2937] text-gray-300 rounded-xl p-1 shadow-2xl">
-                <div className="px-2.5 py-1.5 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
-                  Workspaces
-                </div>
-                {organisations.map((org) => {
-                  const orgId = org.orgId || org._id;
-                  return (
-                    <DropdownMenuItem
-                      key={orgId}
-                      className="hover:bg-slate-800 cursor-pointer flex items-center justify-between text-xs py-2 px-2.5 rounded-lg"
-                      onClick={() => switchOrg(orgId)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Building className="h-3.5 w-3.5 text-[#8B5CF6]" />
-                        <span>{org.name}</span>
-                      </div>
-
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
         {/* Navigation items grouped by sections */}
         <nav className="px-3 py-3 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] custom-scrollbar">
           {sections.map((section) => (
             <div key={section.title} className="space-y-1">
               {!isCollapsed ? (
-                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3.5 py-1 select-none">
+                <div className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider px-3.5 py-1 select-none">
                   {section.title}
                 </div>
               ) : (
-                <div className="h-[1px] bg-[#1F2937]/30 my-2" />
+                <div className="h-[1px] bg-slate-200 dark:bg-[#1F2937]/30 my-2" />
               )}
 
               {section.items.map((item) => {
@@ -180,9 +121,9 @@ export function Sidebar({
                   <button
                     key={item.name}
                     onClick={() => onTabChange && onTabChange(item.name)}
-                    className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs transition-all duration-200 group relative border-none bg-transparent ${isActive
-                      ? "bg-[#8B5CF6] text-white font-bold shadow-lg shadow-purple-500/20"
-                      : "text-gray-400 hover:text-white hover:bg-slate-900/40"
+                    className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs transition-all duration-200 group relative border-none cursor-pointer ${isActive
+                      ? "bg-[#8B5CF6] text-white font-bold shadow-lg shadow-purple-500/25"
+                      : "bg-transparent text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900/40"
                       }`}
                     title={isCollapsed ? item.name : undefined}
                   >
@@ -192,7 +133,7 @@ export function Sidebar({
                     )}
 
                     <motion.div whileTap={{ scale: 0.9 }}>
-                      <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${isActive ? "text-white" : "text-gray-400 group-hover:text-white"
+                      <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 ${isActive ? "text-white" : "text-slate-500 dark:text-gray-400 group-hover:text-slate-900 dark:group-hover:text-white"
                         }`} />
                     </motion.div>
 
@@ -201,6 +142,7 @@ export function Sidebar({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.1 }}
+                        className={isActive ? "text-white font-bold" : "text-slate-600 dark:text-gray-400 group-hover:text-slate-900 dark:group-hover:text-white"}
                       >
                         {item.name}
                       </motion.span>
@@ -208,7 +150,7 @@ export function Sidebar({
 
                     {/* Collapsed Hover Tooltip */}
                     {isCollapsed && (
-                      <span className="absolute left-16 scale-0 rounded-lg bg-[#111827] border border-[#1F2937] p-2 text-[10px] font-bold text-white shadow-2xl transition-all duration-200 group-hover:scale-100 z-40 whitespace-nowrap">
+                      <span className="absolute left-16 scale-0 rounded-lg bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1F2937] p-2 text-[10px] font-bold text-slate-900 dark:text-white shadow-2xl transition-all duration-200 group-hover:scale-100 z-40 whitespace-nowrap">
                         {item.name}
                       </span>
                     )}
@@ -224,22 +166,22 @@ export function Sidebar({
       <div className="p-3 space-y-3">
 
         {/* User Profile */}
-        <div className="border-t border-[#1F2937]/30 pt-3 flex items-center justify-between min-h-[52px]">
+        <div className="border-t border-slate-200 dark:border-[#1F2937]/30 pt-3 flex items-center justify-between min-h-[52px]">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <Avatar className="h-9 w-9 shrink-0 border border-[#1f2937]">
-              <AvatarImage src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" />
-              <AvatarFallback>{user?.name ? user.name.slice(0, 2).toUpperCase() : "JD"}</AvatarFallback>
+            <Avatar className="h-9 w-9 shrink-0 border border-slate-200 dark:border-[#1f2937]">
+              <AvatarImage src={user?.avatarUrl || localStorage.getItem('userAvatarUrl') || ''} alt={user?.name || "User Avatar"} />
+              <AvatarFallback>{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : "JD"}</AvatarFallback>
             </Avatar>
             {!isCollapsed && (
               <div className="flex flex-col text-left truncate">
-                <span className="text-xs font-bold text-white truncate leading-none">{user?.name || "John Doe"}</span>
-                <span className="text-[9px] text-gray-500 truncate mt-1">{user?.email || "john@example.com"}</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate leading-none">{user?.name || "John Doe"}</span>
+                <span className="text-[9px] text-slate-400 dark:text-gray-500 truncate mt-1">{user?.email || "john@example.com"}</span>
               </div>
             )}
           </div>
           {!isCollapsed && (
             <button
-              className="text-gray-500 hover:text-rose-400 transition-colors p-1.5 hover:bg-slate-900 rounded-lg border-none bg-transparent cursor-pointer"
+              className="text-slate-400 dark:text-gray-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg border-none bg-transparent cursor-pointer"
               title="Logout"
               onClick={logout}
             >

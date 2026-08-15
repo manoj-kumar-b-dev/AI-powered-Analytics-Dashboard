@@ -77,7 +77,7 @@ export function WidgetWrapper({
     }
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    
+
     // Parse depending on structure
     if (Array.isArray(widgetData)) {
       csvContent += "Dimension (X),Value (Y)\n";
@@ -103,23 +103,23 @@ export function WidgetWrapper({
       <motion.div
         whileHover={{ y: isEditMode ? 0 : -3 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
-        className={`h-full w-full rounded-2xl border border-[#1F2937]/50 bg-gradient-to-b from-[#111827]/75 to-[#0F172A]/75 backdrop-blur-md flex flex-col overflow-hidden group relative border-t-2 ${theme.color} ${theme.glow} transition-all duration-300 shadow-lg`}
+        className={`h-full w-full rounded-2xl border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#0E1726] flex flex-col overflow-hidden group relative border-t-2 ${theme.color} ${theme.glow} transition-all duration-300 shadow-md dark:shadow-2xl`}
       >
         {/* Widget Header Bar */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1F2937]/30 bg-slate-950/20 select-none">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-[#1E293B]/70 bg-slate-50/80 dark:bg-[#070D18]/70 select-none">
           <div className="flex items-center gap-2.5 overflow-hidden mr-2">
             {isEditMode ? (
-              <div className="drag-handle cursor-grab active:cursor-grabbing p-1 text-gray-500 hover:text-white rounded transition-colors shrink-0">
+              <div className="drag-handle cursor-grab active:cursor-grabbing p-1 text-slate-400 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded transition-colors shrink-0">
                 <GripHorizontal className="h-4 w-4" />
               </div>
             ) : (
               <IconComponent className="h-4 w-4 text-[#8B5CF6] shrink-0" />
             )}
             <div className="flex flex-col text-left truncate">
-              <span className="text-xs font-bold text-gray-200 truncate font-display tracking-wide">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate font-display tracking-wide">
                 {title}
               </span>
-              <span className="text-[9px] text-gray-500 flex items-center gap-1 mt-0.5 font-sans">
+              <span className="text-[9px] text-slate-400 dark:text-slate-400 flex items-center gap-1 mt-0.5 font-sans">
                 <Clock className="h-2.5 w-2.5" />
                 {lastUpdated}
               </span>
@@ -131,9 +131,8 @@ export function WidgetWrapper({
             {/* Quick Refresh Action */}
             <button
               onClick={handleRefresh}
-              className={`p-1.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer border-none bg-transparent ${
-                isRefreshing ? "animate-spin text-[#8B5CF6]" : ""
-              }`}
+              className={`p-1.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer border-none bg-transparent ${isRefreshing ? "animate-spin text-[#8B5CF6]" : ""
+                }`}
               title="Refresh Data"
             >
               <RefreshCw className="h-3.5 w-3.5" />

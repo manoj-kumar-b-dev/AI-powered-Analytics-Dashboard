@@ -35,6 +35,11 @@ export function useUploadDataset() {
 
 export function useAskQuestion(datasetId) {
   return useMutation({
-    mutationFn: (question) => askQuestionApi(datasetId, question)
+    mutationFn: (payload) => {
+      if (typeof payload === 'object' && payload.question) {
+        return askQuestionApi(datasetId, payload.question, payload.history || []);
+      }
+      return askQuestionApi(datasetId, payload);
+    }
   });
 }

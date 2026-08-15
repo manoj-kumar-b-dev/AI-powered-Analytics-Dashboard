@@ -15,22 +15,28 @@ const calculateKpiValue = (kpi, data = []) => {
     return isNaN(parsed) ? 0 : parsed;
   };
 
+  const formatValueWithCr = (val) => {
+    if (Math.abs(val) >= 10000000) {
+      const crVal = val / 10000000;
+      return `${crVal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Cr`;
+    }
+    return val.toLocaleString('en-IN');
+  };
+
   if (kpi.aggregation === 'count') {
-    return data.length.toLocaleString();
+    return formatValueWithCr(data.length);
   }
 
   if (kpi.aggregation === 'sum') {
     const sum = data.reduce((acc, row) => acc + cleanNumber(row[colName]), 0);
-    const isCurrency = (typeof data[0]?.[colName] === 'string' && (data[0]?.[colName].includes('$') || data[0]?.[colName].includes('₹'))) || /revenue|sales|amount|income|expenses|profit|cost|price|salary|fee/i.test(colName);
-    return isCurrency ? `₹${sum.toLocaleString()}` : sum.toLocaleString();
+    return formatValueWithCr(sum);
   }
 
   if (kpi.aggregation === 'avg') {
     const sum = data.reduce((acc, row) => acc + cleanNumber(row[colName]), 0);
     const avg = sum / data.length;
     const formattedAvg = Math.round(avg * 100) / 100;
-    const isCurrency = (typeof data[0]?.[colName] === 'string' && (data[0]?.[colName].includes('$') || data[0]?.[colName].includes('₹'))) || /revenue|sales|amount|income|expenses|profit|cost|price|salary|fee/i.test(colName);
-    return isCurrency ? `₹${formattedAvg.toLocaleString()}` : formattedAvg.toLocaleString();
+    return formatValueWithCr(formattedAvg);
   }
 
   return '-';
@@ -47,22 +53,21 @@ export default function KpiCard({ kpi, data, gridPosition }) {
 
   const style = (gridPosition.x === -1 || gridPosition.y === -1)
     ? {
-        gridColumn: `span ${gridPosition.w}`,
-        gridRow: `span ${gridPosition.h}`
-      }
+      gridColumn: `span ${gridPosition.w}`,
+      gridRow: `span ${gridPosition.h}`
+    }
     : {
-        gridColumn: `${gridPosition.x + 1} / span ${gridPosition.w}`,
-        gridRow: `${gridPosition.y + 1} / span ${gridPosition.h}`
-      };
+      gridColumn: `${gridPosition.x + 1} / span ${gridPosition.w}`,
+      gridRow: `${gridPosition.y + 1} / span ${gridPosition.h}`
+    };
 
   return (
     <div
       style={style}
-      className={`rounded-2xl border p-5 flex flex-col justify-between backdrop-blur-md transition-all duration-300 hover:shadow-lg hover:scale-[1.01] ${
-        isPrimary
-          ? 'bg-gradient-to-br from-[#1F1936] to-[#0D0B1F] border-[#8B5CF6]/30 shadow-[#8B5CF6]/5 shadow-md'
-          : 'bg-[#111827]/40 border-[#1F2937]/80'
-      }`}
+      className={`rounded-2xl border p-5 flex flex-col justify-between backdrop-blur-md transition-all duration-300 hover:shadow-lg hover:scale-[1.01] ${isPrimary
+        ? 'bg-gradient-to-br from-[#1F1936] to-[#0D0B1F] border-[#8B5CF6]/30 shadow-[#8B5CF6]/5 shadow-md'
+        : 'bg-[#111827]/40 border-[#1F2937]/80'
+        }`}
     >
       <div>
         <div className="flex items-center justify-between">

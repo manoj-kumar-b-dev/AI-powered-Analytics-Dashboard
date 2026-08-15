@@ -20,8 +20,8 @@ export function UploadProgressPanel({
   resetUploadWizard
 }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/60 z-10 select-none">
-      <div className="max-w-md w-full p-8 rounded-2xl border border-[#1F2937] bg-[#0A0E1A] shadow-2xl relative overflow-hidden text-left">
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-100/60 dark:bg-slate-950/60 z-10 select-none">
+      <div className="max-w-md w-full p-8 rounded-2xl border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#0A0E1A] shadow-2xl relative overflow-hidden text-left">
         <AnimatePresence mode="wait">
           {uploadState === "uploading" && (
             <motion.div
@@ -35,11 +35,11 @@ export function UploadProgressPanel({
                 <RefreshCw className="h-8 w-8 text-[#8B5CF6] animate-spin" />
               </div>
               <div className="text-center">
-                <h4 className="text-sm font-bold text-white">Uploading File to Server</h4>
-                <p className="text-xs text-gray-400 mt-1 truncate">{activeFile.name}</p>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Uploading File to Server</h4>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 truncate">{activeFile.name}</p>
               </div>
               <div className="space-y-2">
-                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden relative">
+                <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative">
                   <motion.div
                     className="h-full bg-gradient-to-r from-purple-500 via-[#8B5CF6] to-indigo-500"
                     initial={{ width: "0%" }}

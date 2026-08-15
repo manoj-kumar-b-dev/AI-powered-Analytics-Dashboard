@@ -1,7 +1,7 @@
 /**
  * Safe Server-Side Analysis Execution Engine
  * Validates and executes approved analytical operations on raw dataset rows.
- * Supported actions: 'group_by', 'compare_periods', 'filter_and_aggregate', 'top_n'
+ * Supported actions: 'group_by', 'compare_periods', 'filter_and_aggregate', 'top_n', 'overall_summary'
  */
 class AnalysisEngine {
   /**
@@ -14,20 +14,118 @@ class AnalysisEngine {
   execute(operation = {}, rows = [], columnsSchema = []) {
     const action = operation.action || 'group_by';
     const schemaMap = new Map(columnsSchema.map(c => [c.name, c.type]));
+    const targetRows = this._applyFilters(rows, operation, schemaMap);
 
     switch (action) {
       case 'group_by':
-        return this._executeGroupBy(operation, rows, schemaMap);
+        return this._executeGroupBy(operation, targetRows, schemaMap);
       case 'compare_periods':
-        return this._executeComparePeriods(operation, rows, schemaMap);
+        return this._executeComparePeriods(operation, targetRows, schemaMap);
       case 'filter_and_aggregate':
-        return this._executeFilterAndAggregate(operation, rows, schemaMap);
+        return this._executeFilterAndAggregate(operation, targetRows, schemaMap);
       case 'top_n':
-        return this._executeTopN(operation, rows, schemaMap);
+        return this._executeTopN(operation, targetRows, schemaMap);
+      case 'overall_summary':
+        return this._executeOverallSummary(operation, targetRows, schemaMap);
       default:
         // Fall back to top group_by if action is unrecognized
-        return this._executeGroupBy(operation, rows, schemaMap);
+        return this._executeGroupBy(operation, targetRows, schemaMap);
     }
+  }
+
+  _applyFilters(rows, op, schemaMap) {
+    let filtered = [...rows];
+
+    // Apply dateFilter (e.g. "2026-01" or "2025")
+    if (op.dateFilter && op.dateColumn) {
+      const dCol = this._findValidColumn(op.dateColumn, schemaMap, ['date', 'string']);
+      if (dCol) {
+        const pattern = String(op.dateFilter).toLowerCase();
+        filtered = filtered.filter(r => {
+          const rawDate = r[dCol];
+          if (rawDate === null || rawDate === undefined) return false;
+          const strDate = String(rawDate).toLowerCase();
+          if (strDate.includes(pattern)) return true;
+
+          const dObj = new Date(rawDate);
+          if (!isNaN(dObj.getTime())) {
+            const iso = dObj.toISOString().toLowerCase();
+            return iso.includes(pattern);
+          }
+          return false;
+        });
+      }
+    }
+
+    // Apply filterColumn and filterValue
+    if (op.filterColumn && op.filterValue !== undefined && op.filterValue !== null) {
+      const fCol = this._findValidColumn(op.filterColumn, schemaMap);
+      if (fCol) {
+        const valStr = String(op.filterValue).toLowerCase().trim();
+        filtered = filtered.filter(r => {
+          const rowVal = String(r[fCol] ?? '').toLowerCase();
+          return rowVal.includes(valStr) || valStr.includes(rowVal);
+        });
+      }
+    }
+
+    return filtered;
+  }
+
+  _executeOverallSummary(op, rows, schemaMap) {
+    const metric = this._findValidColumn(op.metric, schemaMap, ['number']) || this._getFirstNumberColumn(schemaMap);
+    const aggregation = ['sum', 'avg', 'min', 'max', 'count'].includes(op.aggregation) ? op.aggregation : 'sum';
+
+    const values = [];
+    rows.forEach(r => {
+      if (metric) {
+        const val = parseFloat(r[metric]);
+        if (!isNaN(val)) values.push(val);
+      }
+    });
+
+    const sumVal = Math.round(values.reduce((a, b) => a + b, 0) * 100) / 100;
+    const avgVal = values.length ? Math.round((sumVal / values.length) * 100) / 100 : 0;
+    const minVal = values.length ? Math.round(Math.min(...values) * 100) / 100 : 0;
+    const maxVal = values.length ? Math.round(Math.max(...values) * 100) / 100 : 0;
+
+    let targetVal = sumVal;
+    if (aggregation === 'avg') targetVal = avgVal;
+    if (aggregation === 'min') targetVal = minVal;
+    if (aggregation === 'max') targetVal = maxVal;
+    if (aggregation === 'count') targetVal = rows.length;
+
+    const summaryResult = [
+      { Metric: 'Sum Total', Value: sumVal },
+      { Metric: 'Average', Value: avgVal },
+      { Metric: 'Minimum', Value: minVal },
+      { Metric: 'Maximum', Value: maxVal }
+    ];
+
+    const filterDesc = op.dateFilter ? ` matching date filter "${op.dateFilter}"` : op.filterColumn ? ` matching filter "${op.filterColumn} = ${op.filterValue}"` : '';
+
+    return {
+      analysis: {
+        action: 'overall_summary',
+        metric: metric || 'Rows',
+        aggregation,
+        targetVal,
+        totalValue: sumVal,
+        avgValue: avgVal,
+        totalRows: rows.length,
+        dateFilter: op.dateFilter || null,
+        filterColumn: op.filterColumn || null,
+        filterValue: op.filterValue || null,
+        result: summaryResult
+      },
+      chart: {
+        type: 'bar',
+        xKey: 'Metric',
+        yKey: 'Value',
+        data: summaryResult
+      },
+      methodology: `Calculated overall ${aggregation.toUpperCase()} of ${metric || 'rows'} across ${rows.length} records${filterDesc}.`
+    };
   }
 
   _executeGroupBy(op, rows, schemaMap) {
@@ -203,25 +301,31 @@ class AnalysisEngine {
 
   _executeTopN(op, rows, schemaMap) {
     const groupBy = this._findValidColumn(op.groupBy, schemaMap, ['string', 'boolean', 'date']) || this._getFirstColumn(schemaMap);
-    const metric = this._findValidColumn(op.metric, schemaMap, ['number']) || this._getFirstNumberColumn(schemaMap);
+    const metric = op.metric ? this._findValidColumn(op.metric, schemaMap, ['number']) : null;
     const limit = Math.min(Math.max(parseInt(op.limit) || 5, 1), 20);
     const direction = op.direction === 'asc' ? 'asc' : 'desc';
 
     const groupSums = {};
     rows.forEach(r => {
       const gKey = String(r[groupBy] ?? 'Unknown');
-      const val = parseFloat(r[metric]) || 0;
-      groupSums[gKey] = (groupSums[gKey] || 0) + val;
+      if (metric) {
+        const val = parseFloat(r[metric]) || 0;
+        groupSums[gKey] = (groupSums[gKey] || 0) + val;
+      } else {
+        groupSums[gKey] = (groupSums[gKey] || 0) + 1;
+      }
     });
+
+    const metricKey = metric || 'Count';
 
     const sorted = Object.entries(groupSums)
       .map(([k, val]) => ({
         [groupBy]: k,
-        [metric || 'Value']: Math.round(val * 100) / 100
+        [metricKey]: Math.round(val * 100) / 100
       }))
       .sort((a, b) => {
-        const valA = a[metric || 'Value'];
-        const valB = b[metric || 'Value'];
+        const valA = a[metricKey];
+        const valB = b[metricKey];
         return direction === 'asc' ? valA - valB : valB - valA;
       })
       .slice(0, limit);

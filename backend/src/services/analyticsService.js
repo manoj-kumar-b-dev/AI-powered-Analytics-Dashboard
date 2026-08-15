@@ -18,11 +18,11 @@ const { validateChartResult, validateKPIResult } = require('../analytics/validat
 // Helper: Format Numbers (USD Default, K/M/B Abbreviated)
 const formatValue = (num, type) => {
   if (num === null || num === undefined || isNaN(num)) return '—';
-  
+
   const abs = Math.abs(num);
   let suffix = '';
   let val = num;
-  
+
   if (abs >= 1.0e9) {
     val = num / 1.0e9;
     suffix = 'B';
@@ -664,8 +664,8 @@ class AnalyticsService {
       rowCount: dataSource.rowCount,
       variablesCount: dataSource.schema.length,
       problemCount: dataSource.validation?.problemCount || 0,
-      cleanliness: dataSource.validation?.problemCount > 0 
-        ? `${Math.max(0, 100 - Math.round((dataSource.validation.problemCount / dataSource.rowCount) * 100))}%` 
+      cleanliness: dataSource.validation?.problemCount > 0
+        ? `${Math.max(0, 100 - Math.round((dataSource.validation.problemCount / dataSource.rowCount) * 100))}%`
         : "100%",
       status: dataSource.status,
       schema: dataSource.schema
@@ -723,8 +723,18 @@ class AnalyticsService {
     // Step 5: Rule Engine evaluation
     const ruleAlerts = await RuleEngineService.evaluateRules(dataSource._id);
 
-    // Step 6: AI-powered insights
-    const insights = await InsightGeneratorService.generateInsights(kpis, ruleAlerts, domain, domainLabel || domain);
+    // Step 6: AI-powered insights with full dataset sample context
+    const sampleRowsRaw = await DataRow.find({ dataSourceId: dataSource._id, orgId: dataSource.orgId }).limit(100).lean();
+    const sampleRows = sampleRowsRaw.map(r => r.data);
+
+    const insights = await InsightGeneratorService.generateInsights({
+      kpis,
+      charts,
+      data: sampleRows,
+      domain,
+      domainLabel: domainLabel || domain,
+      ruleAlerts
+    });
 
     // Step 7: Filters and reports
     const filterOptions = await this.generateFilters(dataSource);
