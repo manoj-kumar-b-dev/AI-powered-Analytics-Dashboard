@@ -503,7 +503,7 @@ export const AuthScreen = () => {
             </div>
 
             <a
-              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/google`}
+              href={`${import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== '' ? import.meta.env.VITE_API_URL : (import.meta.env.MODE === 'production' ? '' : 'http://localhost:5000')}/auth/google`}
               className="w-full h-10 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 text-decoration-none shadow-sm cursor-pointer"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">

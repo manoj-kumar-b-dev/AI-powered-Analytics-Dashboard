@@ -10,7 +10,9 @@ export const AuthProvider = ({ children }) => {
   const [activeOrgId, setActiveOrgId] = useState(localStorage.getItem('activeOrgId') || null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== '' 
+    ? import.meta.env.VITE_API_URL 
+    : (import.meta.env.MODE === 'production' ? '' : 'http://localhost:5000');
 
   // Helper: Request with Auth Header
   const apiRequest = async (url, options = {}) => {

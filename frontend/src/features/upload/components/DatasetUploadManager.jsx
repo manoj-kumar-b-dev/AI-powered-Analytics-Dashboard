@@ -209,7 +209,9 @@ export function DatasetUploadManager({
         setNetworkError("Network error uploading file.");
       };
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== '' 
+        ? import.meta.env.VITE_API_URL 
+        : (import.meta.env.MODE === 'production' ? '' : 'http://localhost:5000');
       xhr.open("POST", `${API_URL}/datasources/upload`);
       xhr.withCredentials = true;
       if (authToken) {
