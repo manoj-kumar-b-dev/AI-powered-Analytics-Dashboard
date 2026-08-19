@@ -82,6 +82,7 @@ app.use('/datasets', datasetRouter);
 // Root and favicon routes to prevent 404s in browser direct access
 app.get('/', (req, res) => res.status(200).json({ message: 'SaaS Analytics API Backend Running' }));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/.well-known/*', (req, res) => res.status(204).end());
 
 // Base route for healthcheck
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
