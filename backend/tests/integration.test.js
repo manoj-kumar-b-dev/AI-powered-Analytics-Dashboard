@@ -4,7 +4,7 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 const app = require('../src/app');
 const User = require('../src/models/user');
 const Org = require('../src/models/org');
-const Dashboard = require('../src/models/dashboard');
+const DashboardPreference = require('../src/models/dashboardPreference');
 const RefreshToken = require('../src/models/refreshToken');
 
 let mongoServer;
@@ -31,7 +31,7 @@ beforeEach(async () => {
   // Clean up collections before each test run
   await User.deleteMany({});
   await Org.deleteMany({});
-  await Dashboard.deleteMany({});
+  await DashboardPreference.deleteMany({});
   await RefreshToken.deleteMany({});
 });
 
@@ -144,44 +144,20 @@ describe('SaaS Analytics platform integration testing', () => {
         });
       const bobToken = userBRes.body.accessToken;
 
-      // 3. Alice creates a dashboard in Org A
-      const dashboardRes = await request(app)
-        .post('/dashboards')
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({
-          name: "Alice's Private Board",
-          widgets: [],
-          layout: []
-        });
-      
-      expect(dashboardRes.status).toBe(201);
-      const dashboardId = dashboardRes.body._id;
-
-      // 4. Bob tries to access Alice's dashboard (directly by ID) -> Should fail with 404/403
-      // Because Bob's query context will be scoped to Bob's orgId, the query findById(dashboardId)
-      // will filter by: _id: dashboardId AND orgId: bobOrgId. Since Alice's dashboard has aliceOrgId,
-      // the find query returns null, resulting in a 404 Not Found!
-      const bobGetRes = await request(app)
-        .get(`/dashboards/${dashboardId}`)
+      // 3. Bob tries to access Alice's organization -> Should fail with 403
+      const bobGetOrgRes = await request(app)
+        .get(`/orgs/${aliceOrgId}`)
         .set('Authorization', `Bearer ${bobToken}`);
       
-      expect(bobGetRes.status).toBe(404);
+      expect(bobGetOrgRes.status).toBe(403);
 
-      // 5. Bob tries to update Alice's dashboard -> Should fail with 404
-      const bobPutRes = await request(app)
-        .put(`/dashboards/${dashboardId}`)
-        .set('Authorization', `Bearer ${bobToken}`)
-        .send({ name: 'Hacked name' });
-      
-      expect(bobPutRes.status).toBe(404);
-
-      // Verify that Alice can retrieve her dashboard normally
-      const aliceGetRes = await request(app)
-        .get(`/dashboards/${dashboardId}`)
+      // 4. Verify Alice can access her organization normally
+      const aliceGetOrgRes = await request(app)
+        .get(`/orgs/${aliceOrgId}`)
         .set('Authorization', `Bearer ${aliceToken}`);
       
-      expect(aliceGetRes.status).toBe(200);
-      expect(aliceGetRes.body.name).toBe("Alice's Private Board");
+      expect(aliceGetOrgRes.status).toBe(200);
+      expect(aliceGetOrgRes.body._id).toBe(aliceOrgId.toString());
     });
   });
 });

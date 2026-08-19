@@ -29,10 +29,13 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl, or postman)
+      // Allow requests with no origin (like mobile apps, curl, postman, or same-origin requests)
       if (!origin) return callback(null, true);
 
-      const isAllowed = allowedOrigins.includes(origin) || /^https?:\/\/localhost:\d+$/.test(origin);
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        /^https?:\/\/localhost:\d+$/.test(origin) ||
+        /\.vercel\.app$/.test(origin);
       if (isAllowed) {
         return callback(null, true);
       }
@@ -58,10 +61,12 @@ app.use(tenantMiddleware);
 // Database Connection
 const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/saas_analytics';
 if (process.env.NODE_ENV !== 'test') {
-  mongoose
-    .connect(dbUri)
-    .then(() => console.log('Successfully connected to MongoDB.'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+  if (mongoose.connection.readyState === 0) {
+    mongoose
+      .connect(dbUri)
+      .then(() => console.log('Successfully connected to MongoDB.'))
+      .catch((err) => console.error('MongoDB connection error:', err));
+  }
 }
 
 // REST Endpoints

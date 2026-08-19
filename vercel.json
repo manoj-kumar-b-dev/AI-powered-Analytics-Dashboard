@@ -15,35 +15,35 @@
   ],
   "routes": [
     {
-      "src": "/auth/(.*)",
+      "src": "/auth(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/orgs/(.*)",
+      "src": "/orgs(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/datasources/(.*)",
+      "src": "/datasources(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/analytics/(.*)",
+      "src": "/analytics(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/dashboard/(.*)",
+      "src": "/dashboard(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/insights/(.*)",
+      "src": "/insights(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/datasets/(.*)",
+      "src": "/datasets(.*)",
       "dest": "backend/api/index.js"
     },
     {
-      "src": "/api/(.*)",
+      "src": "/api(.*)",
       "dest": "backend/api/index.js"
     },
     {
