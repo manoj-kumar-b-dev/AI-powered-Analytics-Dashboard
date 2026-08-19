@@ -58,16 +58,29 @@ app.use(passport.initialize());
 // Tenant Context Middleware (runs after auth)
 app.use(tenantMiddleware);
 
-// Database Connection
-const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/saas_analytics';
-if (process.env.NODE_ENV !== 'test') {
-  if (mongoose.connection.readyState === 0) {
-    mongoose
-      .connect(dbUri)
-      .then(() => console.log('Successfully connected to MongoDB.'))
-      .catch((err) => console.error('MongoDB connection error:', err));
+// Database Connection Helper & Middleware (Serverless Friendly)
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/saas_analytics';
+  await mongoose.connect(dbUri);
+};
+
+app.use(async (req, res, next) => {
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      await connectDB();
+    } catch (err) {
+      console.error('MongoDB connection error:', err.message || err);
+      return res.status(500).json({
+        error: {
+          code: 'DATABASE_CONNECTION_ERROR',
+          message: 'Failed to connect to database. Please verify MONGO_URI in Vercel Environment Variables.'
+        }
+      });
+    }
   }
-}
+  next();
+});
 
 // REST Endpoints
 app.use('/auth', authRouter);

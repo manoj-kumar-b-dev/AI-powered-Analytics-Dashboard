@@ -139,7 +139,7 @@ exports.login = async (req, res) => {
     return res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
-        message: 'Something went wrong during login'
+        message: err.message || 'Something went wrong during login'
       }
     });
   }
