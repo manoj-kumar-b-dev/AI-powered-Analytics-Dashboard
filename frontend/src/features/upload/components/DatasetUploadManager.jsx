@@ -209,7 +209,8 @@ export function DatasetUploadManager({
         setNetworkError("Network error uploading file.");
       };
 
-      xhr.open("POST", "http://localhost:5000/datasources/upload");
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      xhr.open("POST", `${API_URL}/datasources/upload`);
       xhr.withCredentials = true;
       if (authToken) {
         xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);

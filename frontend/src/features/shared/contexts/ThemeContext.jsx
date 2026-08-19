@@ -9,8 +9,9 @@ const ThemeContext = createContext({
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {
-    const savedTheme = localStorage.getItem('analytics_dashboard_theme') || localStorage.getItem('theme');
-    return savedTheme === 'light' ? 'light' : 'dark';
+    const savedTheme = localStorage.getItem('analytics_dashboard_theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    return 'dark';
   });
 
   const isDark = theme === 'dark';

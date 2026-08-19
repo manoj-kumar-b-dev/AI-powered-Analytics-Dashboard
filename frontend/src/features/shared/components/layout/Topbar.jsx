@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Bell,
   Sun,
   Moon,
   Plus,
@@ -31,7 +30,6 @@ import {
 export function Topbar({
   title = "Dashboard",
   onUploadClick,
-  notificationCount: initialNotificationCount = 3,
   onSearchAction,
   dataSources = [],
   selectedDSId = null,
@@ -41,12 +39,6 @@ export function Topbar({
   const { isDark, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [notificationCount, setNotificationCount] = useState(initialNotificationCount);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Dataset processing complete", time: "2 min ago", unread: true, type: "success", desc: "Your uploaded spreadsheet was processed and insights updated." },
-    { id: 2, title: "Margin Anomaly Detected", time: "1 hour ago", unread: true, type: "critical", desc: "Product cost anomaly detected in Q2 financial data." },
-    { id: 3, title: "Weekly Insights Report", time: "1 day ago", unread: true, type: "info", desc: "Automated executive summary is ready for review." }
-  ]);
 
   // Monitor Ctrl + K
   useEffect(() => {
@@ -59,18 +51,6 @@ export function Topbar({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-    setNotificationCount(0);
-  };
-
-  const handleNotificationClick = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
-    setNotificationCount((prev) => Math.max(0, prev - 1));
-  };
 
   // Commands available in Ctrl+K search menu
   const searchCommands = [
@@ -172,76 +152,43 @@ export function Topbar({
           <div className="h-5 w-[1px] bg-slate-200 dark:bg-[#1F2937] hidden sm:block shrink-0" />
 
           {/* Dark / Light Mode Theme Toggle */}
-          <button
+          <motion.button
             onClick={toggleTheme}
-            className="flex h-10 px-3 items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white/60 dark:bg-[#111827]/40 hover:bg-slate-100 dark:hover:bg-[#111827]/60 hover:border-slate-300 dark:hover:border-gray-600 text-slate-700 dark:text-gray-300 transition-all cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative flex h-10 px-3 items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white/60 dark:bg-[#111827]/40 hover:bg-slate-100 dark:hover:bg-[#111827]/60 hover:border-purple-500/40 dark:hover:border-purple-500/40 text-slate-700 dark:text-gray-300 transition-colors cursor-pointer shadow-sm focus:outline-none overflow-hidden"
             aria-label={`Current theme: ${isDark ? 'Dark' : 'Light'}. Click to toggle theme.`}
             title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
           >
-            {isDark ? (
-              <motion.div key="dark-mode" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1.5 text-xs font-semibold text-[#8B5CF6]">
-                <Moon className="h-4 w-4 text-[#8B5CF6]" />
-                <span className="hidden lg:inline text-[11px]">Dark</span>
-              </motion.div>
-            ) : (
-              <motion.div key="light-mode" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
-                <Sun className="h-4 w-4 text-amber-500" />
-                <span className="hidden lg:inline text-[11px]">Light</span>
-              </motion.div>
-            )}
-          </button>
-
-          {/* Notification Bell Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="relative h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-[#1F2937] bg-white/60 dark:bg-[#111827]/40 hover:bg-slate-100 dark:hover:bg-[#111827]/60 hover:border-slate-300 dark:hover:border-gray-600 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-sm"
-                aria-label="Notifications"
-              >
-                <Bell className="h-4.5 w-4.5" />
-                {notificationCount > 0 && (
-                  <span className="absolute top-[2px] right-[2px] h-4.5 w-4.5 rounded-full bg-rose-500 border border-white dark:border-[#070B14] text-[9px] font-bold text-white flex items-center justify-center shadow-lg">
-                    {notificationCount}
-                  </span>
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="right" className="w-80 bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1F2937] text-slate-800 dark:text-gray-300 p-2 shadow-2xl rounded-2xl max-h-[400px] overflow-y-auto custom-scrollbar">
-              <div className="px-2 py-2 border-b border-slate-200 dark:border-[#1F2937]/50 flex items-center justify-between select-none">
-                <span className="text-xs font-bold text-slate-900 dark:text-white">Recent Notifications</span>
-                <button
-                  className="text-[10px] text-[#8B5CF6] hover:text-[#a78bfa] font-bold cursor-pointer transition-colors"
-                  onClick={handleMarkAllRead}
+            <AnimatePresence mode="wait" initial={false}>
+              {isDark ? (
+                <motion.div
+                  key="dark-mode"
+                  initial={{ rotate: -90, scale: 0.5, opacity: 0 }}
+                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                  exit={{ rotate: 90, scale: 0.5, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#8B5CF6]"
                 >
-                  Mark all read
-                </button>
-              </div>
-              <div className="space-y-1 mt-2">
-                {notifications.map((notif) => (
-                  <DropdownMenuItem
-                    key={notif.id}
-                    onClick={() => handleNotificationClick(notif.id)}
-                    className={`flex flex-col items-start gap-1 p-2.5 rounded-xl cursor-pointer transition-all ${notif.unread ? "bg-slate-100 dark:bg-[#1E293B]/20 hover:bg-slate-200/60 dark:hover:bg-[#1E293B]/40" : "hover:bg-slate-100/50 dark:hover:bg-white/5"
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5 w-full">
-                      {notif.unread && (
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${notif.type === "critical" ? "bg-rose-500" : notif.type === "success" ? "bg-green-500" : "bg-blue-500"
-                          }`} />
-                      )}
-                      <span className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[190px]">
-                        {notif.title}
-                      </span>
-                      <span className="text-[9px] text-slate-400 dark:text-gray-500 ml-auto shrink-0">{notif.time}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-gray-400 leading-normal pl-3 font-medium">
-                      {notif.desc}
-                    </p>
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <Moon className="h-4 w-4 text-[#8B5CF6] filter drop-shadow-[0_0_6px_rgba(139,92,246,0.6)]" />
+                  <span className="hidden lg:inline text-[11px]">Dark</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="light-mode"
+                  initial={{ rotate: 90, scale: 0.5, opacity: 0 }}
+                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                  exit={{ rotate: -90, scale: 0.5, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-amber-500"
+                >
+                  <Sun className="h-4 w-4 text-amber-500 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]" />
+                  <span className="hidden lg:inline text-[11px]">Light</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
 
           <div className="h-5 w-[1px] bg-slate-200 dark:bg-[#1F2937] shrink-0" />
 

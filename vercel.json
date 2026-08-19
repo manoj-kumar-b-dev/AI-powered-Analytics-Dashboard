@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "backend/api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/auth/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/orgs/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/datasources/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/analytics/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/dashboard/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/insights/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/datasets/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/health",
+      "dest": "backend/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
+    }
+  ]
+}

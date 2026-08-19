@@ -78,7 +78,7 @@ export function Sidebar({
               transition={{ delay: 0.1 }}
               className="flex items-center gap-3 w-full"
             >
-              <img src={logoImg} alt="Vizora Logo" className="h-8 w-8 object-contain rounded-lg shrink-0 shadow-md" />
+              <img src={logoImg} alt="Vizora Logo" className="h-11 w-11 object-contain rounded-lg shrink-0 shadow-md" />
               <div className="flex flex-col text-left truncate">
                 <span className="font-display font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-[#a78bfa] dark:to-[#06b6d4] bg-clip-text text-transparent tracking-tight leading-tight">
                   Vizora
@@ -88,7 +88,7 @@ export function Sidebar({
             </motion.div>
           ) : (
             <div className="mx-auto">
-              <img src={logoImg} alt="Vizora Logo" className="h-8 w-8 object-contain rounded-lg shrink-0 shadow-md" />
+              <img src={logoImg} alt="Vizora Logo" className="h-11 w-11 object-contain rounded-lg shrink-0 shadow-md" />
             </div>
           )}
 
