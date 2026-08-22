@@ -28,7 +28,6 @@ export default function App() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px' }}>
         <RefreshCw className="animate-spin" style={{ color: 'hsl(var(--primary))', width: '32px', height: '32px' }} />
-        <span style={{ fontSize: '0.9rem', color: 'hsl(var(--text-muted))' }}>Establishing tenant boundary...</span>
       </div>
     );
   }
