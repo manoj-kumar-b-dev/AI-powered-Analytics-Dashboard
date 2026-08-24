@@ -15,32 +15,31 @@ An enterprise-grade, multi-tenant SaaS Business Intelligence (BI) and Data Analy
 
 ## 🌟 Key Features
 
-### 1. 🔒 Zero-Leak Multi-Tenant Isolation
-- **Contextual Context Binding**: Powered by Node.js `AsyncLocalStorage` and custom Mongoose plugins.
-- **Automated Filter Injection**: Automatically appends `{ orgId }` constraints to all database queries (`find`, `count`, `aggregate`) database-side.
-- **Fail-Safe Scoping**: Eliminates accidental cross-tenant data leakage structurally across all endpoints.
-
-### 2. 🔑 Secure Authentication & Session Rotation
-- **Stateless Dual-Token Auth**: Short-lived Access JWTs (15 min) paired with HTTP-only, secure Refresh Cookies (14 days).
-- **Refresh Token Family Rotation**: SHA-256 hashed refresh tokens stored in DB with automatic family invalidation on reuse detection to prevent token theft.
-- **OAuth 2.0 & RBAC**: Integrated Passport.js Google OAuth support and fine-grained Role-Based Access Control (`Owner`, `Admin`, `Member`).
-
-### 3. 🤖 Ask AI Natural-Language Query Engine
+### 1. 🤖 Ask AI Natural-Language Query Engine
 - **Sandboxed Execution**: Raw dataset contents are never exposed to LLM APIs. Only dataset schemas, column metrics, and anonymized summary samples are shared.
 - **Structured Action Constraints**: Constrains AI function-calling to strictly validated operations (`group_by`, `compare_periods`, `filter_and_aggregate`, `top_n`).
 - **Deterministic Rule-Based Fallback**: Intelligent statistical fallback engine that operates seamlessly if LLM credentials are absent or rate-limited.
 - **Rich Conversational Insights**: Generates plain-English narrative summaries, trend callouts, calculation methodology notes, and chart recommendations.
 
-### 4. 📊 Automated Data Ingestion & Downsampling
+### 2. 📊 Automated Data Ingestion & Downsampling
 - **Multi-Format Spreadsheet Parsing**: High-performance parsing for `.csv`, `.xlsx`, and `.xls` files up to 15MB.
 - **Schema & Type Inference**: Automatically infers column data types (`string`, `number`, `date`, `boolean`) and flags anomalies.
 - **Smart Data Downsampling**: Automatically caps and downsamples charts to max 100 data points server-side using time-skipping or categorical grouping ("Other") to maintain smooth browser performance.
 
-### 5. 🧩 Drag-and-Drop Dashboard Workspace
+### 3. 🧩 Drag-and-Drop Dashboard Workspace
 - **Flexible Grid Layout**: Customizable drag-and-drop dashboard widgets built with `react-grid-layout` and `recharts`.
 - **Dynamic Chart Pairing**: Automated heuristic recommendation engine that selects optimal chart types (`Bar`, `Line`, `Pie`, `KPI Cards`) based on data attributes.
 - **Workspace Context Switching**: Allows users to seamlessly navigate between multiple organization profiles and dashboards.
 
+### 4. 🔑 Secure Authentication & Session Rotation
+- **Stateless Dual-Token Auth**: Short-lived Access JWTs (15 min) paired with HTTP-only, secure Refresh Cookies (14 days).
+- **Refresh Token Family Rotation**: SHA-256 hashed refresh tokens stored in DB with automatic family invalidation on reuse detection to prevent token theft.
+- **OAuth 2.0 & RBAC**: Integrated Passport.js Google OAuth support and fine-grained Role-Based Access Control (`Owner`, `Admin`, `Member`).
+  
+### 5. 🔒 Zero-Leak Multi-Tenant Isolation
+- **Contextual Context Binding**: Powered by Node.js `AsyncLocalStorage` and custom Mongoose plugins.
+- **Automated Filter Injection**: Automatically appends `{ orgId }` constraints to all database queries (`find`, `count`, `aggregate`) database-side.
+- **Fail-Safe Scoping**: Eliminates accidental cross-tenant data leakage structurally across all endpoints.
 ---
 
 ## 🏗️ System Architecture
